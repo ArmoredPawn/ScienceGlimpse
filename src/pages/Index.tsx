@@ -51,15 +51,6 @@ const Index: React.FC = () => {
           paragraphSize="normal"
         />
 
-        <div className="flex justify-center px-4 pb-12">
-          <Link
-            to="/events"
-            className="bg-primary text-primary-foreground font-semibold py-3 px-6 rounded-xl hover:opacity-90 transition-opacity"
-          >
-            Check Out Northland Event
-          </Link>
-        </div>
-
         <HotSights />
 
         <section className="py-24 px-4 bg-muted/20">

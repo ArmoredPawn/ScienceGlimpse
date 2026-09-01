@@ -1,0 +1,730 @@
+/* =========================================================
+   SCIENCE SUMMIT
+   ========================================================= */
+
+.sg-summit-shell {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px;
+  color: #eef7ff;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.sg-summit-header {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.sg-summit-kicker {
+  margin-bottom: 6px;
+
+  color: #78c9ee;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.sg-summit-header h1 {
+  margin: 0;
+
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.sg-summit-header p {
+  margin: 9px 0 0;
+
+  color: #a9bfd3;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+.sg-summit-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.sg-stat {
+  min-width: 90px;
+  box-sizing: border-box;
+
+  padding: 9px 12px;
+
+  border: 1px solid rgba(185, 220, 244, 0.15);
+  border-radius: 12px;
+
+  background: rgba(7, 21, 46, 0.85);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.sg-stat span {
+  display: block;
+
+  color: #7e9ab1;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.sg-stat strong {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #eef7ff;
+  font-size: 17px;
+}
+
+.sg-energy strong {
+  color: #f6c65c;
+}
+
+/* =========================================================
+   GAME CONTAINER
+   ========================================================= */
+
+.sg-summit-game-wrap {
+  position: relative;
+
+  width: 100%;
+  max-width: 1180px;
+
+  margin: 0 auto;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(188, 222, 247, 0.16);
+  border-radius: 20px;
+
+  background: #07152e;
+
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* =========================================================
+   CANVAS
+   ========================================================= */
+
+/*
+   IMPORTANT:
+   The game itself is rendered by JavaScript onto this canvas.
+   Do not add transforms, opacity, filters, or positioning
+   that could interfere with the canvas rendering.
+*/
+
+.sg-summit-canvas {
+  display: block;
+
+  width: 100%;
+  height: 720px;
+
+  min-height: 500px;
+
+  margin: 0;
+  padding: 0;
+
+  background: #07152e;
+
+  outline: none;
+  border: 0;
+
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* =========================================================
+   GAME HINT
+   ========================================================= */
+
+.sg-summit-hint {
+  position: absolute;
+
+  top: 14px;
+  left: 50%;
+
+  z-index: 10;
+
+  transform: translateX(-50%);
+
+  padding: 7px 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+
+  background: rgba(3, 12, 27, 0.72);
+
+  color: #bfd2e2;
+
+  font-size: 11px;
+  line-height: 1;
+
+  white-space: nowrap;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  pointer-events: none;
+}
+
+.sg-summit-hint span {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* =========================================================
+   TOAST / MESSAGE
+   ========================================================= */
+
+.sg-summit-toast {
+  position: absolute;
+
+  left: 50%;
+  bottom: 22px;
+
+  z-index: 20;
+
+  transform: translateX(-50%);
+
+  padding: 10px 15px;
+
+  border: 1px solid rgba(170, 220, 245, 0.2);
+  border-radius: 999px;
+
+  background: rgba(5, 16, 34, 0.94);
+
+  color: #eef7ff;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   OVERLAYS
+   ========================================================= */
+
+.sg-summit-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  z-index: 50;
+
+  display: grid;
+  place-items: center;
+
+  box-sizing: border-box;
+
+  padding: 22px;
+
+  background: rgba(2, 9, 22, 0.72);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* =========================================================
+   GENERAL CARDS
+   ========================================================= */
+
+.sg-overlay-card,
+.sg-summit-card {
+  width: min(560px, 100%);
+
+  box-sizing: border-box;
+
+  padding: 30px;
+
+  border: 1px solid rgba(190, 226, 248, 0.16);
+  border-radius: 22px;
+
+  background: #0d2341;
+
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+
+  color: #eef7ff;
+}
+
+/* =========================================================
+   OVERLAY CARD
+   ========================================================= */
+
+.sg-overlay-card {
+  text-align: center;
+}
+
+.sg-overlay-card h2,
+.sg-summit-card h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.1;
+
+  letter-spacing: -0.03em;
+}
+
+.sg-overlay-card p,
+.sg-summit-card p {
+  margin: 12px 0;
+
+  color: #aec2d5;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   SCIENCE ORB
+   ========================================================= */
+
+.sg-orb {
+  width: 66px;
+  height: 66px;
+
+  margin: 0 auto 15px;
+
+  display: grid;
+  place-items: center;
+
+  box-sizing: border-box;
+
+  border: 1px solid rgba(105, 193, 229, 0.24);
+  border-radius: 20px;
+
+  background: rgba(105, 193, 229, 0.12);
+
+  font-size: 31px;
+}
+
+/* =========================================================
+   BUTTON RESET
+   ========================================================= */
+
+.sg-primary-button,
+.sg-secondary-button,
+.sg-mobile-controls button {
+  font: inherit;
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  border: 0;
+  outline: none;
+}
+
+/* =========================================================
+   PRIMARY BUTTON
+   ========================================================= */
+
+.sg-primary-button {
+  width: 100%;
+
+  margin-top: 20px;
+
+  padding: 14px 18px;
+
+  border-radius: 12px;
+
+  background: #7ed4f3;
+  color: #08203a;
+
+  font-size: 14px;
+  font-weight: 850;
+
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.sg-primary-button:hover {
+  transform: translateY(-1px);
+
+  filter: brightness(1.06);
+
+  box-shadow: 0 8px 24px rgba(126, 212, 243, 0.18);
+}
+
+.sg-primary-button:active {
+  transform: translateY(0);
+}
+
+.sg-primary-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(126, 212, 243, 0.3);
+}
+
+/* =========================================================
+   START SCREEN
+   ========================================================= */
+
+.sg-summit-start {
+  width: 100%;
+  max-width: 1180px;
+
+  min-height: 620px;
+
+  margin: 0 auto;
+
+  box-sizing: border-box;
+
+  display: grid;
+  place-items: center;
+
+  padding: 30px;
+
+  border: 1px solid rgba(188, 222, 247, 0.12);
+  border-radius: 20px;
+
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      rgba(89, 181, 226, 0.12),
+      transparent 35%
+    ),
+    #07152e;
+}
+
+.sg-summit-card {
+  max-width: 610px;
+
+  text-align: center;
+}
+
+.sg-note {
+  margin-top: 12px;
+
+  color: #718ca5;
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sg-best-line {
+  color: #7ed4f3 !important;
+  font-weight: 800;
+}
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+.sg-controls-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 9px;
+
+  margin-top: 22px;
+
+  text-align: left;
+}
+
+.sg-controls-grid > div {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 11px;
+
+  box-sizing: border-box;
+
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  color: #a8bed2;
+
+  font-size: 11px;
+}
+
+.sg-controls-grid > div span {
+  min-width: 0;
+}
+
+.sg-summit-shell kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 25px;
+
+  padding: 4px 6px;
+
+  box-sizing: border-box;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+
+  background: #152f4d;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   BOTTOM ACTION BUTTONS
+   ========================================================= */
+
+.sg-summit-actions {
+  width: 100%;
+  max-width: 1180px;
+
+  margin: 12px auto 0;
+
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+}
+
+.sg-secondary-button {
+  padding: 10px 13px;
+
+  border: 1px solid rgba(188, 220, 242, 0.12);
+  border-radius: 10px;
+
+  background: #102b49;
+  color: #c8d9e8;
+
+  font-size: 12px;
+  font-weight: 750;
+
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease;
+}
+
+.sg-secondary-button:hover:not(:disabled) {
+  background: #173b60;
+
+  transform: translateY(-1px);
+}
+
+.sg-secondary-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.sg-secondary-button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+}
+
+.sg-secondary-button.danger {
+  margin-left: auto;
+}
+
+/* =========================================================
+   MOBILE CONTROLS
+   ========================================================= */
+
+.sg-mobile-controls {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 18px;
+
+  z-index: 30;
+
+  display: none;
+
+  justify-content: center;
+
+  gap: 9px;
+
+  pointer-events: none;
+}
+
+.sg-mobile-controls button {
+  width: 54px;
+  height: 54px;
+
+  pointer-events: auto;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 15px;
+
+  background: rgba(5, 16, 34, 0.78);
+
+  color: #ffffff;
+
+  font-size: 23px;
+
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sg-mobile-controls button:active {
+  background: rgba(20, 55, 85, 0.9);
+
+  transform: scale(0.96);
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .sg-summit-shell {
+    padding: 18px;
+  }
+
+  .sg-summit-header {
+    align-items: flex-start;
+  }
+
+  .sg-summit-stats {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .sg-summit-shell {
+    padding: 12px;
+  }
+
+  .sg-summit-header {
+    display: block;
+
+    margin-bottom: 12px;
+  }
+
+  .sg-summit-header h1 {
+    font-size: 34px;
+  }
+
+  .sg-summit-stats {
+    margin-top: 14px;
+
+    justify-content: flex-start;
+  }
+
+  .sg-stat {
+    min-width: 75px;
+  }
+
+  .sg-summit-game-wrap {
+    border-radius: 16px;
+  }
+
+  .sg-summit-canvas {
+    width: 100%;
+    height: 70vh;
+
+    min-height: 500px;
+  }
+
+  .sg-summit-hint {
+    display: none;
+  }
+
+  .sg-mobile-controls {
+    display: flex;
+  }
+
+  .sg-controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sg-overlay-card,
+  .sg-summit-card {
+    padding: 21px;
+  }
+
+  .sg-summit-start {
+    min-height: 580px;
+
+    padding: 18px;
+
+    border-radius: 16px;
+  }
+
+  .sg-secondary-button.danger {
+    margin-left: 0;
+  }
+}
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 430px) {
+  .sg-summit-shell {
+    padding: 8px;
+  }
+
+  .sg-summit-header h1 {
+    font-size: 30px;
+  }
+
+  .sg-stat {
+    padding: 8px 10px;
+  }
+
+  .sg-summit-canvas {
+    min-height: 480px;
+  }
+
+  .sg-mobile-controls button {
+    width: 50px;
+    height: 50px;
+  }
+}

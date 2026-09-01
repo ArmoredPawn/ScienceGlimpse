@@ -1,10 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  collection,
   doc,
   getDoc,
-  onSnapshot,
   runTransaction,
   serverTimestamp,
 } from "firebase/firestore";
@@ -13,6 +11,7 @@ import { Coins, UserRound } from "lucide-react";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
+import { subscribeToTokenBalance } from "../lib/tokens";
 
 interface StoredProfile {
   username: string;
@@ -73,79 +72,13 @@ const Profile = () => {
       return;
     }
 
-    let automaticTokens = 0;
-    let adjustmentTokens = 0;
-
-    const updateDisplayedBalance = () => {
-      setTokens(
-        Math.max(0, automaticTokens + adjustmentTokens),
-      );
-    };
-
-    const unsubscribeRewards = onSnapshot(
-      collection(
-        db,
-        "users",
-        user.uid,
-        "tokenLedger",
-      ),
-      (snapshot) => {
-        automaticTokens = snapshot.docs.reduce(
-          (total, currentDocument) => {
-            const amount = currentDocument.data().amount;
-
-            return (
-              total +
-              (typeof amount === "number" ? amount : 0)
-            );
-          },
-          0,
-        );
-
-        updateDisplayedBalance();
-      },
+    return subscribeToTokenBalance(
+      user.uid,
+      (balance) => setTokens(balance),
       (error) => {
-        console.error(
-          "Could not load article tokens:",
-          error,
-        );
+        console.error("Could not load token balance:", error);
       },
     );
-
-    const unsubscribeAdjustments = onSnapshot(
-      collection(
-        db,
-        "users",
-        user.uid,
-        "tokenAdjustments",
-      ),
-      (snapshot) => {
-        adjustmentTokens = snapshot.docs.reduce(
-          (total, currentDocument) => {
-            const amount = currentDocument.data().amount;
-
-            return (
-              total +
-              (typeof amount === "number" ? amount : 0)
-            );
-          },
-          0,
-        );
-
-        updateDisplayedBalance();
-      },
-      (error) => {
-        console.error(
-          "Could not load token adjustments:",
-          error,
-        );
-      },
-    );
-
-    return () => {
-      unsubscribeRewards();
-      unsubscribeAdjustments();
-    };
   }, [loading, user]);
 
   const handleUsernameChange = (

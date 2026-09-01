@@ -31,6 +31,7 @@ interface UserSummary {
   photoURL: string;
   automaticTokens: number;
   adjustments: number;
+  gameTokens: number;
   balance: number;
   completedArticles: number;
 }
@@ -112,25 +113,36 @@ const Mod = () => {
         usersSnapshot.docs.map(async (userDocument) => {
           const profile = userDocument.data();
 
-          const [ledgerSnapshot, adjustmentSnapshot] =
-            await Promise.all([
-              getDocs(
-                collection(
-                  db,
-                  "users",
-                  userDocument.id,
-                  "tokenLedger",
-                ),
+          const [
+            ledgerSnapshot,
+            adjustmentSnapshot,
+            gameLedgerSnapshot,
+          ] = await Promise.all([
+            getDocs(
+              collection(
+                db,
+                "users",
+                userDocument.id,
+                "tokenLedger",
               ),
-              getDocs(
-                collection(
-                  db,
-                  "users",
-                  userDocument.id,
-                  "tokenAdjustments",
-                ),
+            ),
+            getDocs(
+              collection(
+                db,
+                "users",
+                userDocument.id,
+                "tokenAdjustments",
               ),
-            ]);
+            ),
+            getDocs(
+              collection(
+                db,
+                "users",
+                userDocument.id,
+                "gameLedger",
+              ),
+            ),
+          ]);
 
           const automaticTokens =
             ledgerSnapshot.docs.reduce(
@@ -160,6 +172,20 @@ const Mod = () => {
               0,
             );
 
+          const gameTokens =
+            gameLedgerSnapshot.docs.reduce(
+              (total, gameDocument) => {
+                const gameAmount =
+                  gameDocument.data().amount;
+
+                return total +
+                  (typeof gameAmount === "number"
+                    ? gameAmount
+                    : 0);
+              },
+              0,
+            );
+
           return {
             uid: userDocument.id,
             username:
@@ -172,9 +198,10 @@ const Mod = () => {
                 : "",
             automaticTokens,
             adjustments,
+            gameTokens,
             balance: Math.max(
               0,
-              automaticTokens + adjustments,
+              automaticTokens + adjustments + gameTokens,
             ),
             completedArticles: ledgerSnapshot.size,
           };
@@ -521,6 +548,9 @@ const Mod = () => {
                     Adjustments
                   </th>
                   <th className="px-6 py-4">
+                    Game tokens
+                  </th>
+                  <th className="px-6 py-4">
                     Total
                   </th>
                   <th className="px-6 py-4">
@@ -571,6 +601,12 @@ const Mod = () => {
                       {currentUser.adjustments > 0
                         ? `+${currentUser.adjustments}`
                         : currentUser.adjustments}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {currentUser.gameTokens > 0
+                        ? `+${currentUser.gameTokens}`
+                        : currentUser.gameTokens}
                     </td>
 
                     <td className="px-6 py-4">

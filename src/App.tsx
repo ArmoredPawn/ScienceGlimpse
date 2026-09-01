@@ -27,6 +27,7 @@ import Mod from "./pages/Mod";
 // import HowArticles from "./pages/Howarticles";
 // import How from "./pages/How";
 import AnalyticsTracker from "./AnalyticsTracker"
+import { ScienceSummit } from "./games/ScienceGlimpse-Science-Summit/ScienceSummit";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/articles" element={<Articles />} />
           <Route path="/submission" element={<Submission />} />
+          <Route path="/game" element={<ScienceSummit />} />
           <Route path="/article" element={<Article />} />
           <Route path="/about" element={<About />} />
           <Route path="/members" element={<Members />} />

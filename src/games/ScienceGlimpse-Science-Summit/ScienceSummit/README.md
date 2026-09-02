@@ -56,6 +56,7 @@ Signed-in players play with their real ScienceGlimpse token balance as energy �
 - Mobile: on-screen controls
 - Platforms are fully solid: they block horizontal movement into their sides, always stop a fall onto their top, and always stop a jump into their underside too — rising straight up through a platform is never allowed, even one the player is trying to land on. Reaching the top of a platform means jumping up beside it and coming down onto it, not rising through the middle. Consecutive platforms are always generated with a guaranteed horizontal gap (never stacked directly on top of one another), which is what makes that side approach possible in the first place.
 - Falling: returns you to the most recent checkpoint
+- Lava rises continuously from below and gets faster every 100m of altitude reached; touching it is instant death, no checkpoint reset
 - New platforms are generated above the player, so the climb is effectively endless
 - Best altitude is scoped to the signed-in account (`users/{uid}/gameStats/scienceSummit` in Firestore, via `useBestAltitude()` in `src/hooks/useBestAltitude.ts`), not the device — switching accounts on the same browser shows each account's own record. Signed-out play falls back to a per-device localStorage record, since there's no account to scope it to.
 

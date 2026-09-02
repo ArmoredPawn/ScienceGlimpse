@@ -46,6 +46,14 @@ const AIR_ACCEL = 0.48;
 const MAX_SPEED = 6.8;
 const FRICTION = 0.78;
 
+/**
+ * Caps how fast the player can fall. Without this, a long freefall
+ * keeps accelerating indefinitely, and a single frame's drop can end
+ * up bigger than the gap between platforms — the exact condition that
+ * lets a fast fall land on the wrong platform (or none at all).
+ */
+const MAX_FALL_SPEED = 22;
+
 const JUMP_VELOCITY = -12.4;
 const DOUBLE_JUMP_VELOCITY = -11.2;
 
@@ -59,6 +67,19 @@ const PLATFORM_GAP_MAX = 108;
  */
 const JUMPS_PER_TOKEN = 10;
 const TOKENS_PER_CHARGE = 1;
+
+/**
+ * Lava starts just beneath the player's feet at spawn (the player
+ * starts at y: 595, height 46 — so feet sit at 641) and immediately
+ * rises toward them at LAVA_BASE_SPEED world-units per frame. It gets
+ * LAVA_SPEED_STEP faster for every LAVA_MILESTONE_METERS climbed, so
+ * dawdling gets punished harder the higher the run goes. Touching it
+ * is instant death — no checkpoint reset.
+ */
+const LAVA_START_Y = 825;
+const LAVA_BASE_SPEED = 0.8;
+const LAVA_SPEED_STEP = 0.25;
+const LAVA_MILESTONE_METERS = 100;
 
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
@@ -139,21 +160,25 @@ function generatePlatforms(
 
       /*
        * Clamping near a world edge can pull the platform back toward
-       * the previous one. If that closes the gap, place it hard
-       * against the opposite edge from the previous platform instead
-       * — still separated, just not centered on the ideal shift.
+       * the previous one. If that closes the gap, flip to the OTHER
+       * side of the previous platform instead, using only the minimum
+       * safe shift (the same clearance every normal placement relies
+       * on, so it's guaranteed jumpable) rather than snapping all the
+       * way to the far edge of the world. Snapping to the far edge
+       * used to be able to leave a gap hundreds of pixels wide —
+       * comfortably wider than any jump can cross — stranding the
+       * player on the platform below.
        */
       const stillOverlaps =
         x + width + PLATFORM_MIN_HORIZONTAL_GAP > previous.x &&
         x < previous.x + previous.width + PLATFORM_MIN_HORIZONTAL_GAP;
 
       if (stillOverlaps) {
-        const center2 = previous.x + previous.width / 2;
-
-        x =
-          center2 < WORLD_WIDTH / 2
-            ? WORLD_WIDTH - width - 35
-            : 35;
+        x = clamp(
+          center - direction * minShift - width / 2,
+          35,
+          WORLD_WIDTH - width - 35
+        );
       }
     }
 
@@ -260,6 +285,8 @@ export default function ScienceSummit({
 
   const cameraYRef = useRef(0);
 
+  const lavaYRef = useRef(LAVA_START_Y);
+
   const maxHeightRef = useRef(0);
 
   const checkpointRef = useRef({
@@ -293,6 +320,8 @@ export default function ScienceSummit({
   const [message, setMessage] = useState("");
 
   const [gameOver, setGameOver] = useState(false);
+
+  const [diedInLava, setDiedInLava] = useState(false);
 
   const [paused, setPaused] = useState(false);
 
@@ -340,6 +369,8 @@ export default function ScienceSummit({
 
     cameraYRef.current = 0;
 
+    lavaYRef.current = LAVA_START_Y;
+
     maxHeightRef.current = 0;
 
     checkpointRef.current = {
@@ -358,6 +389,8 @@ export default function ScienceSummit({
     setMessage("");
 
     setGameOver(false);
+
+    setDiedInLava(false);
 
     setPaused(false);
 
@@ -712,6 +745,63 @@ export default function ScienceSummit({
         ctx.stroke();
 
         ctx.globalAlpha = 1;
+      }
+
+      /*
+       * Lava. Drawn before platforms/player so they visibly poke up
+       * out of it as it rises.
+       */
+      const lavaScreenY =
+        (lavaYRef.current - cameraY) * scale;
+
+      if (lavaScreenY < heightPx) {
+        const lavaTop = Math.max(0, lavaScreenY);
+
+        const lavaGradient = ctx.createLinearGradient(
+          0,
+          lavaTop,
+          0,
+          heightPx
+        );
+
+        lavaGradient.addColorStop(0, "#ffe08a");
+        lavaGradient.addColorStop(0.15, "#ff8a3d");
+        lavaGradient.addColorStop(1, "#7a1405");
+
+        ctx.fillStyle = lavaGradient;
+
+        ctx.fillRect(
+          0,
+          lavaTop,
+          width,
+          heightPx - lavaTop
+        );
+
+        ctx.save();
+
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = "#ffe9b0";
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+
+        const waveTime = Date.now() / 320;
+
+        for (let x = 0; x <= width; x += 14) {
+          const waveY =
+            lavaScreenY +
+            Math.sin(x / 28 + waveTime) * 3;
+
+          if (x === 0) {
+            ctx.moveTo(x, waveY);
+          } else {
+            ctx.lineTo(x, waveY);
+          }
+        }
+
+        ctx.stroke();
+
+        ctx.restore();
       }
 
       /*
@@ -1232,6 +1322,11 @@ export default function ScienceSummit({
         player.vy +=
           GRAVITY * dt;
 
+        player.vy = Math.min(
+          player.vy,
+          MAX_FALL_SPEED
+        );
+
         player.y +=
           player.vy * dt;
 
@@ -1254,14 +1349,41 @@ export default function ScienceSummit({
          * underside band for a moment (normal for this genre) and
          * either lands on top once gravity pulls them back down, or
          * continues past to a higher platform.
+         *
+         * Horizontal overlap below is checked across the player's whole
+         * sideways travel this frame (oldX..player.x), not just the
+         * final x. Sideways and vertical movement are resolved
+         * separately, so on a fast diagonal frame the player can start
+         * the frame over a platform, drift past its edge horizontally,
+         * and only THEN cross the platform's y — checking the final x
+         * alone would miss the overlap that was true when the crossing
+         * actually happened, and the platform would silently fail to
+         * catch the player.
          */
+
+        const sweptLeft = Math.min(oldX, player.x);
+        const sweptRight =
+          Math.max(oldX, player.x) + player.width;
+
         if (player.vy >= 0) {
+          /*
+           * A fast fall (no terminal velocity cap — a long enough
+           * plunge keeps accelerating) can cross more than one
+           * platform's y-band in a single frame. Picking the FIRST
+           * match found in array order (roughly bottom-to-top) could
+           * land the player on a lower platform than the one they
+           * actually reached first, which looks exactly like falling
+           * straight through the real one. Instead, scan every
+           * candidate and land on whichever has the smallest y — the
+           * highest surface, i.e. the first one actually hit.
+           */
+          let landedPlatform: Platform | null = null;
+
           for (const platform of platformsRef.current) {
             const horizontal =
-              player.x +
-                player.width >
+              sweptRight >
                 platform.x &&
-              player.x <
+              sweptLeft <
                 platform.x +
                   platform.width;
 
@@ -1274,41 +1396,44 @@ export default function ScienceSummit({
 
             if (
               horizontal &&
-              crossed
+              crossed &&
+              (!landedPlatform ||
+                platform.y <
+                  landedPlatform.y)
             ) {
-              player.y =
-                platform.y -
-                player.height;
+              landedPlatform = platform;
+            }
+          }
 
-              player.vy = 0;
+          if (landedPlatform) {
+            player.y =
+              landedPlatform.y -
+              player.height;
 
-              player.grounded =
-                true;
+            player.vy = 0;
 
-              player.jumpsLeft = 1;
+            player.grounded = true;
 
-              /*
-               * Checkpoint every 4 platforms.
-               */
-              if (
-                platform.id > 0 &&
-                platform.id % 4 === 0
-              ) {
-                checkpointRef.current =
-                  {
-                    x:
-                      platform.x +
-                      platform.width /
-                        2 -
-                      player.width /
-                        2,
-                    y:
-                      platform.y -
-                      player.height,
-                  };
-              }
+            player.jumpsLeft = 1;
 
-              break;
+            /*
+             * Checkpoint every 4 platforms.
+             */
+            if (
+              landedPlatform.id > 0 &&
+              landedPlatform.id % 4 === 0
+            ) {
+              checkpointRef.current =
+                {
+                  x:
+                    landedPlatform.x +
+                    landedPlatform.width /
+                      2 -
+                    player.width / 2,
+                  y:
+                    landedPlatform.y -
+                    player.height,
+                };
             }
           }
         } else {
@@ -1318,13 +1443,20 @@ export default function ScienceSummit({
            * directly underneath is not allowed — reaching the top
            * requires jumping up beside it and coming down onto it,
            * not rising straight through the middle.
+           *
+           * Same reasoning as the landing case above: pick the ceiling
+           * with the LARGEST bottom edge (closest below the player),
+           * not just the first match in array order, so a fast rise
+           * stops at the first real ceiling it reaches.
            */
+          let ceilingBottom = -Infinity;
+          let hitCeiling = false;
+
           for (const platform of platformsRef.current) {
             const horizontal =
-              player.x +
-                player.width >
+              sweptRight >
                 platform.x &&
-              player.x <
+              sweptLeft <
                 platform.x +
                   platform.width;
 
@@ -1337,14 +1469,21 @@ export default function ScienceSummit({
 
             if (
               horizontal &&
-              crossed
+              crossed &&
+              platformBottom >
+                ceilingBottom
             ) {
-              player.y = platformBottom;
+              ceilingBottom =
+                platformBottom;
 
-              player.vy = 0;
-
-              break;
+              hitCeiling = true;
             }
+          }
+
+          if (hitCeiling) {
+            player.y = ceilingBottom;
+
+            player.vy = 0;
           }
         }
 
@@ -1523,6 +1662,34 @@ export default function ScienceSummit({
           window.setTimeout(() => {
             setMessage("");
           }, 900);
+        }
+
+        /*
+         * LAVA
+         * Rises continuously and speeds up every LAVA_MILESTONE_METERS
+         * of altitude reached (using the best height ever hit, not the
+         * current one, so it never slows back down if the player drops
+         * lower). Touching it is instant death — unlike falling, there
+         * is no checkpoint reset to soften it.
+         */
+        const lavaSpeed =
+          LAVA_BASE_SPEED +
+          Math.floor(
+            maxHeightRef.current /
+              LAVA_MILESTONE_METERS
+          ) *
+            LAVA_SPEED_STEP;
+
+        lavaYRef.current -=
+          lavaSpeed * dt;
+
+        if (
+          player.y +
+            player.height >=
+          lavaYRef.current
+        ) {
+          setDiedInLava(true);
+          setGameOver(true);
         }
 
         /*
@@ -1789,11 +1956,13 @@ export default function ScienceSummit({
               <div className="sg-summit-overlay">
                 <div className="sg-overlay-card">
                   <div className="sg-orb">
-                    🏔️
+                    {diedInLava ? "🌋" : "🏔️"}
                   </div>
 
                   <h2>
-                    Run Complete
+                    {diedInLava
+                      ? "Swallowed by the Lava"
+                      : "Run Complete"}
                   </h2>
 
                   <p>

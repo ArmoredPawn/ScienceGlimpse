@@ -46,12 +46,6 @@ const AIR_ACCEL = 0.48;
 const MAX_SPEED = 6.8;
 const FRICTION = 0.78;
 
-/**
- * Caps how fast the player can fall. Without this, a long freefall
- * keeps accelerating indefinitely, and a single frame's drop can end
- * up bigger than the gap between platforms — the exact condition that
- * lets a fast fall land on the wrong platform (or none at all).
- */
 const MAX_FALL_SPEED = 22;
 
 const JUMP_VELOCITY = -12.4;
@@ -59,26 +53,21 @@ const DOUBLE_JUMP_VELOCITY = -11.2;
 
 const PLATFORM_H = 18;
 const PLATFORM_GAP_MIN = 65;
-const PLATFORM_GAP_MAX = 108;
-
+const PLATFORM_GAP_MAX = 103;
 /**
- * Jumping is the only thing that spends tokens: every 10 jumps
- * (grounded or double-jump, counted the same way) costs 1 token.
+ * A single jump (JUMP_VELOCITY^2 / (2*GRAVITY)) rises about 126 world-units
+ * at most. Keeping the difficulty-scaled vertical gap comfortably under that
+ * means every gap is coverable by ONE well-timed jump, with the double jump
+ * staying an optional skill bonus rather than something a gap requires just
+ * to survive with zero horizontal room to spare.
  */
+const PLATFORM_GAP_MAX_DIFFICULTY_BONUS = 15;
+
 const JUMPS_PER_TOKEN = 10;
 const TOKENS_PER_CHARGE = 1;
-
-/**
- * Lava starts just beneath the player's feet at spawn (the player
- * starts at y: 595, height 46 — so feet sit at 641) and immediately
- * rises toward them at LAVA_BASE_SPEED world-units per frame. It gets
- * LAVA_SPEED_STEP faster for every LAVA_MILESTONE_METERS climbed, so
- * dawdling gets punished harder the higher the run goes. Touching it
- * is instant death — no checkpoint reset.
- */
-const LAVA_START_Y = 825;
+const LAVA_START_Y = 875;
 const LAVA_BASE_SPEED = 0.8;
-const LAVA_SPEED_STEP = 0.25;
+const LAVA_SPEED_STEP = 0.30;
 const LAVA_MILESTONE_METERS = 100;
 
 const clamp = (n: number, min: number, max: number) =>
@@ -88,25 +77,12 @@ function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-/**
- * Smallest horizontal gap kept between one platform's edge and the
- * next platform's edge, so consecutive platforms are never stacked
- * directly on top of each other (or overlapping).
- */
 const PLATFORM_MIN_HORIZONTAL_GAP = 30;
 
 function generatePlatforms(
   fromY: number,
   count: number,
   nextId: number,
-  /**
-   * The real platform immediately below the first one generated here
-   * (i.e. the current topmost platform before this batch). Without
-   * this, the first platform of every new batch would be placed with
-   * a fully random x, independent of what's directly beneath it —
-   * which is exactly what let platforms end up stacked on top of
-   * each other at batch boundaries.
-   */
   seedPlatform: Platform | null
 ): Platform[] {
   const result: Platform[] = [];
@@ -116,10 +92,16 @@ function generatePlatforms(
   const difficulty = clamp(altitude / 7000, 0, 1);
 
   for (let i = 0; i < count; i++) {
-    y -= randomBetween(
+    const gapMaxForDifficulty =
+      PLATFORM_GAP_MAX +
+      difficulty * PLATFORM_GAP_MAX_DIFFICULTY_BONUS;
+
+    const verticalGap = randomBetween(
       PLATFORM_GAP_MIN + difficulty * 8,
-      PLATFORM_GAP_MAX + difficulty * 35
+      gapMaxForDifficulty
     );
+
+    y -= verticalGap;
 
     const width = randomBetween(
       145 - difficulty * 35,
@@ -132,19 +114,36 @@ function generatePlatforms(
 
     if (previous) {
       /*
-       * Shift left or right from the previous platform by at least
-       * enough to clear both platforms' half-widths plus a visible
-       * gap — never just a "nearby" random offset, which could land
-       * anywhere including directly overlapping the platform below.
+       * A platform's vertical gap and horizontal shift were previously
+       * capped independently, so a single platform could roll a
+       * near-maximum gap AND a near-maximum shift at the same time —
+       * a combination no jump can comfortably cover. Landings that
+       * were barely possible ended up right at the target's far edge
+       * with no room to stop, so residual jump momentum (or just
+       * holding the move key) carried the player straight off it a
+       * frame or two after touching down — indistinguishable from the
+       * platform not being there at all. Scaling the shift budget down
+       * as the vertical gap eats into a single jump's ~126-unit reach
+       * keeps the two from maxing out together, so jumps land with
+       * margin to spare instead of right on the ragged edge.
        */
+      const verticalReachUsed = clamp(
+        (verticalGap - PLATFORM_GAP_MIN) /
+          (gapMaxForDifficulty - PLATFORM_GAP_MIN),
+        0,
+        1
+      );
+
       const minShift =
         previous.width / 2 +
         width / 2 +
         PLATFORM_MIN_HORIZONTAL_GAP;
 
+      const shiftBudget = 260 + difficulty * 45;
+
       const maxShift = Math.max(
         minShift,
-        260 + difficulty * 45
+        shiftBudget * (1 - verticalReachUsed * 0.6)
       );
 
       const shiftMagnitude = randomBetween(minShift, maxShift);
@@ -158,17 +157,6 @@ function generatePlatforms(
         WORLD_WIDTH - width - 35
       );
 
-      /*
-       * Clamping near a world edge can pull the platform back toward
-       * the previous one. If that closes the gap, flip to the OTHER
-       * side of the previous platform instead, using only the minimum
-       * safe shift (the same clearance every normal placement relies
-       * on, so it's guaranteed jumpable) rather than snapping all the
-       * way to the far edge of the world. Snapping to the far edge
-       * used to be able to leave a gap hundreds of pixels wide —
-       * comfortably wider than any jump can cross — stranding the
-       * player on the platform below.
-       */
       const stillOverlaps =
         x + width + PLATFORM_MIN_HORIZONTAL_GAP > previous.x &&
         x < previous.x + previous.width + PLATFORM_MIN_HORIZONTAL_GAP;
@@ -1266,42 +1254,13 @@ export default function ScienceSummit({
           player.vx * dt;
 
         /*
-         * Horizontal platform collision.
-         * Platforms are solid on every side — the player cannot
-         * slide sideways through one either, only around it.
+         * Platforms are only solid vertically (landing on top, blocked
+         * from below) — there is no side-wall collision. Side walls
+         * used to snap the player's x to a platform's edge the moment
+         * their body's height band merely overlapped it, which fired
+         * constantly while flying or standing near a platform's side
+         * and read as an unwanted teleport, not a collision.
          */
-        for (const platform of platformsRef.current) {
-          const verticalOverlap =
-            player.y +
-              player.height >
-              platform.y &&
-            player.y <
-              platform.y +
-                platform.height;
-
-          if (!verticalOverlap) {
-            continue;
-          }
-
-          const platformRight =
-            platform.x + platform.width;
-
-          if (
-            oldX + player.width <= platform.x &&
-            player.x + player.width >= platform.x
-          ) {
-            // Moving right into the platform's left edge.
-            player.x = platform.x - player.width;
-            player.vx = 0;
-          } else if (
-            oldX >= platformRight &&
-            player.x <= platformRight
-          ) {
-            // Moving left into the platform's right edge.
-            player.x = platformRight;
-            player.vx = 0;
-          }
-        }
 
         player.x = clamp(
           player.x,
@@ -1329,6 +1288,8 @@ export default function ScienceSummit({
 
         player.y +=
           player.vy * dt;
+
+        const wasGrounded = player.grounded;
 
         player.grounded = false;
 
@@ -1380,12 +1341,27 @@ export default function ScienceSummit({
           let landedPlatform: Platform | null = null;
 
           for (const platform of platformsRef.current) {
+            /*
+             * A landing used to register on ANY overlap at all, even a
+             * sliver of a pixel where the player is really just
+             * falling past a platform's edge, not onto it. Combined
+             * with the landing snap pulling the player's whole body
+             * onto the platform, that sliver-overlap read as an
+             * unwanted teleport sideways onto a platform the player
+             * was simply falling next to. Requiring at least half the
+             * player's own width to actually overlap means a landing
+             * only registers when the player is genuinely coming down
+             * on the platform — a bare graze just falls past it.
+             */
+            const overlapWidth =
+              Math.min(
+                sweptRight,
+                platform.x + platform.width
+              ) -
+              Math.max(sweptLeft, platform.x);
+
             const horizontal =
-              sweptRight >
-                platform.x &&
-              sweptLeft <
-                platform.x +
-                  platform.width;
+              overlapWidth >= player.width / 2;
 
             const crossed =
               oldBottom <=
@@ -1415,6 +1391,40 @@ export default function ScienceSummit({
             player.grounded = true;
 
             player.jumpsLeft = 1;
+
+            /*
+             * A landing can register while the player's box is only
+             * PARTIALLY over the platform (the swept check only needs
+             * the path to have touched it, not the final resting
+             * spot). Left as-is, that partial overlap — combined with
+             * whatever horizontal speed the jump still had — meant a
+             * landing could immediately slide off the very platform
+             * it just registered on, feeling exactly like falling
+             * through solid ground. Pin the player fully onto the
+             * platform and cut the carried-over jump speed so a
+             * landing is a landing: only the player's own held input
+             * can walk them back off it afterward, not leftover
+             * momentum from the jump that got them there.
+             *
+             * Gated on `!wasGrounded` because this landing check
+             * re-fires every single frame the player is already
+             * standing still (gravity nudges them down a hair, they
+             * re-land immediately) — applying this every such frame
+             * would trap a standing player in place and turn normal
+             * walking-speed into molasses. It should only fire once,
+             * on the actual airborne-to-grounded transition.
+             */
+            if (!wasGrounded) {
+              player.x = clamp(
+                player.x,
+                landedPlatform.x,
+                landedPlatform.x +
+                  landedPlatform.width -
+                  player.width
+              );
+
+              player.vx *= 0.2;
+            }
 
             /*
              * Checkpoint every 4 platforms.
@@ -1759,11 +1769,11 @@ export default function ScienceSummit({
       <div className="sg-summit-header">
         <div>
           <div className="sg-summit-kicker">
-            SCIENCEGLIMPSE GAME
+            SCIENCEGLIMPSE GAME 1
           </div>
 
           <h1>
-            Science Summit
+            ScienceGlimpse Summit
           </h1>
 
           <p>

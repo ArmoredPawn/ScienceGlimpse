@@ -1344,14 +1344,18 @@ export default function ScienceSummit({
             /*
              * A landing used to register on ANY overlap at all, even a
              * sliver of a pixel where the player is really just
-             * falling past a platform's edge, not onto it. Combined
-             * with the landing snap pulling the player's whole body
-             * onto the platform, that sliver-overlap read as an
-             * unwanted teleport sideways onto a platform the player
-             * was simply falling next to. Requiring at least half the
-             * player's own width to actually overlap means a landing
-             * only registers when the player is genuinely coming down
-             * on the platform — a bare graze just falls past it.
+             * falling past a platform's edge, not onto it. That was
+             * fixed by requiring half the player's own width to
+             * overlap — but jump-arc precision is never pixel-perfect,
+             * so landings that clip a platform's edge (extremely
+             * common — most jumps aren't aimed dead-center) stopped
+             * registering at all, and the player fell straight through
+             * a platform that was visibly right under their feet.
+             * A small fixed overlap is enough to tell "landing on the
+             * edge" apart from "falling past it entirely" without
+             * throwing out legitimate edge landings; the real fix for
+             * the original teleport complaint is below, where the
+             * player's position is no longer force-snapped on landing.
              */
             const overlapWidth =
               Math.min(
@@ -1361,7 +1365,7 @@ export default function ScienceSummit({
               Math.max(sweptLeft, platform.x);
 
             const horizontal =
-              overlapWidth >= player.width / 2;
+              overlapWidth >= 6;
 
             const crossed =
               oldBottom <=
@@ -1396,15 +1400,16 @@ export default function ScienceSummit({
              * A landing can register while the player's box is only
              * PARTIALLY over the platform (the swept check only needs
              * the path to have touched it, not the final resting
-             * spot). Left as-is, that partial overlap — combined with
-             * whatever horizontal speed the jump still had — meant a
-             * landing could immediately slide off the very platform
-             * it just registered on, feeling exactly like falling
-             * through solid ground. Pin the player fully onto the
-             * platform and cut the carried-over jump speed so a
-             * landing is a landing: only the player's own held input
-             * can walk them back off it afterward, not leftover
-             * momentum from the jump that got them there.
+             * spot). Left completely alone, that partial overlap —
+             * combined with whatever horizontal speed the jump still
+             * had — could immediately slide the player off the very
+             * platform they just landed on. Cutting the carried-over
+             * jump speed on touchdown is enough to fix that; forcibly
+             * snapping the player's x into the platform's bounds (the
+             * previous fix) is NOT needed for it and was actively
+             * wrong — it silently teleported the player sideways by
+             * up to their own width on any edge landing, which read as
+             * the ground moving under them, not a landing.
              *
              * Gated on `!wasGrounded` because this landing check
              * re-fires every single frame the player is already
@@ -1415,14 +1420,6 @@ export default function ScienceSummit({
              * on the actual airborne-to-grounded transition.
              */
             if (!wasGrounded) {
-              player.x = clamp(
-                player.x,
-                landedPlatform.x,
-                landedPlatform.x +
-                  landedPlatform.width -
-                  player.width
-              );
-
               player.vx *= 0.2;
             }
 

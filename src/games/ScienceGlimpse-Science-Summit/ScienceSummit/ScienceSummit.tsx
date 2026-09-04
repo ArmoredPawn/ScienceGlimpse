@@ -1254,13 +1254,71 @@ export default function ScienceSummit({
           player.vx * dt;
 
         /*
-         * Platforms are only solid vertically (landing on top, blocked
-         * from below) — there is no side-wall collision. Side walls
-         * used to snap the player's x to a platform's edge the moment
-         * their body's height band merely overlapped it, which fired
-         * constantly while flying or standing near a platform's side
-         * and read as an unwanted teleport, not a collision.
+         * Side-wall collision. A platform is solid on its sides, not
+         * just top/bottom, so walking or drifting into one horizontally
+         * stops the player at its edge instead of phasing through.
+         *
+         * Only counts as a side hit when the player's body actually
+         * overlaps the platform's (thin, PLATFORM_H-tall) vertical
+         * band by more than a sliver — standing exactly on top has
+         * zero overlap (player's bottom == platform's top), so normal
+         * walking on and off a platform's top surface is untouched.
+         * The "crossed" check (old edge vs. new edge relative to the
+         * platform) is what makes this a wall instead of a teleport:
+         * it only fires the frame the player actually passes into the
+         * platform, and picks whichever platform blocks first if more
+         * than one is in range.
          */
+        const SIDE_OVERLAP_MIN = 4;
+
+        let blockedRightX: number | null = null;
+        let blockedLeftX: number | null = null;
+
+        for (const platform of platformsRef.current) {
+          const verticalOverlap =
+            Math.min(
+              player.y + player.height,
+              platform.y + platform.height
+            ) - Math.max(player.y, platform.y);
+
+          if (verticalOverlap < SIDE_OVERLAP_MIN) {
+            continue;
+          }
+
+          if (
+            player.vx > 0 &&
+            oldX + player.width <= platform.x &&
+            player.x + player.width > platform.x
+          ) {
+            const edge = platform.x - player.width;
+
+            if (blockedRightX === null || edge < blockedRightX) {
+              blockedRightX = edge;
+            }
+          }
+
+          if (
+            player.vx < 0 &&
+            oldX >= platform.x + platform.width &&
+            player.x < platform.x + platform.width
+          ) {
+            const edge = platform.x + platform.width;
+
+            if (blockedLeftX === null || edge > blockedLeftX) {
+              blockedLeftX = edge;
+            }
+          }
+        }
+
+        if (blockedRightX !== null) {
+          player.x = blockedRightX;
+          player.vx = 0;
+        }
+
+        if (blockedLeftX !== null) {
+          player.x = blockedLeftX;
+          player.vx = 0;
+        }
 
         player.x = clamp(
           player.x,

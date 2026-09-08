@@ -7,6 +7,7 @@ import HotSights from '@/components/HotSights';
 import ArticleFeed from '@/components/ArticleFeed';
 import FoundersSection from '@/components/FoundersSection';
 import WhatIsScienceGlimpse from '@/components/WhatIsScienceGlimpse';
+import JuniorWritersPopup from '@/components/JuniorWritersPopup';
 
 type Category = {
   field: string;
@@ -40,6 +41,8 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       <AnimatedBackground />
+
+      <JuniorWritersPopup />
 
       <Navigation />
 

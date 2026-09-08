@@ -12,7 +12,7 @@ import Contact from "./pages/Contact";
 import Donate from "./pages/Donate";
 import NotFound from "./pages/NotFound";
 import Article from './pages/Article';
-import Themes from "./pages/Themes";
+import Classes from "./pages/Classes";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Mod from "./pages/Mod";
@@ -48,7 +48,7 @@ const App = () => (
           <Route path="/members" element={<Members />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/donate" element={<Donate />} />
-          <Route path="/themes" element={<Themes />} />
+          <Route path="/classes" element={<Classes />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/mod" element={<Mod />} />

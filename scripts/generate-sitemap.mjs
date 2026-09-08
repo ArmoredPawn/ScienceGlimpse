@@ -14,7 +14,7 @@ const staticPages = [
   '/',
   '/about',
   '/articles',
-  '/themes',
+  '/classes',
   '/events',
   '/members',
   '/submission',

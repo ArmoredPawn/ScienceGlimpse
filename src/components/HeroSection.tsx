@@ -41,10 +41,10 @@ const HeroSection = () => {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => navigate('/themes')}
+              onClick={() => navigate('/classes')}
               className="glow-action-btn-green bg-green-700 text-lg py-4 transition-all duration-300"
             >
-              Themes
+              Classes
             </Button>
           </div>
         </div>

@@ -13,6 +13,7 @@ import Donate from "./pages/Donate";
 import NotFound from "./pages/NotFound";
 import Article from './pages/Article';
 import Classes from "./pages/Classes";
+import Leaderboard from "./pages/Leaderboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Mod from "./pages/Mod";
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/articles" element={<Articles />} />
           <Route path="/submission" element={<Submission />} />
           <Route path="/game" element={<ScienceSummit />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/article" element={<Article />} />
           <Route path="/about" element={<About />} />
           <Route path="/members" element={<Members />} />

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { doc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  writeBatch,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +43,7 @@ export function useBestAltitude() {
   const [bestAltitude, setBestAltitude] = useState(0);
 
   const bestRef = useRef(0);
+  const usernameRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (authLoading) {
@@ -59,6 +67,66 @@ export function useBestAltitude() {
 
       return;
     }
+
+    usernameRef.current = null;
+
+    /*
+     * Publish this account's existing record to the public leaderboard
+     * if it isn't there yet, or no longer matches. reportAltitude below
+     * only writes when a NEW best is set, so without this a record set
+     * before the leaderboard existed (or under a username since
+     * changed) would never appear on the board.
+     */
+    const syncLeaderboardEntry = async () => {
+      const profileSnapshot = await getDoc(doc(db, "users", userId));
+
+      const username = profileSnapshot.exists()
+        ? profileSnapshot.data().username
+        : null;
+
+      if (typeof username !== "string") {
+        return;
+      }
+
+      usernameRef.current = username;
+
+      const [statsSnapshot, entrySnapshot] = await Promise.all([
+        getDoc(doc(db, "users", userId, "gameStats", "scienceSummit")),
+        getDoc(doc(db, "leaderboard", userId)),
+      ]);
+
+      const storedBest = statsSnapshot.exists()
+        ? statsSnapshot.data().bestAltitude
+        : 0;
+
+      if (typeof storedBest !== "number" || storedBest <= 0) {
+        return;
+      }
+
+      const entry = entrySnapshot.exists() ? entrySnapshot.data() : null;
+
+      const alreadyPublished =
+        entry !== null &&
+        entry.bestAltitude === storedBest &&
+        entry.username === username;
+
+      if (alreadyPublished) {
+        return;
+      }
+
+      await setDoc(doc(db, "leaderboard", userId), {
+        username,
+        bestAltitude: storedBest,
+        updatedAt: serverTimestamp(),
+      });
+    };
+
+    void syncLeaderboardEntry().catch((error) => {
+      console.error(
+        "Could not sync the leaderboard entry:",
+        error,
+      );
+    });
 
     const unsubscribe = onSnapshot(
       doc(db, "users", userId, "gameStats", "scienceSummit"),
@@ -94,10 +162,46 @@ export function useBestAltitude() {
         return;
       }
 
-      void setDoc(doc(db, "users", userId, "gameStats", "scienceSummit"), {
+      const gameStatsReference = doc(
+        db,
+        "users",
+        userId,
+        "gameStats",
+        "scienceSummit",
+      );
+
+      const username = usernameRef.current;
+
+      if (!username) {
+        /*
+         * Username hasn't loaded yet (very early in a session). Save the
+         * real record now and let a later, higher report — which will
+         * have the username by then — backfill the public leaderboard.
+         */
+        void setDoc(gameStatsReference, {
+          bestAltitude: altitude,
+          updatedAt: serverTimestamp(),
+        }).catch((error) => {
+          console.error("Could not save best altitude:", error);
+        });
+
+        return;
+      }
+
+      const batch = writeBatch(db);
+
+      batch.set(gameStatsReference, {
         bestAltitude: altitude,
         updatedAt: serverTimestamp(),
-      }).catch((error) => {
+      });
+
+      batch.set(doc(db, "leaderboard", userId), {
+        username,
+        bestAltitude: altitude,
+        updatedAt: serverTimestamp(),
+      });
+
+      void batch.commit().catch((error) => {
         console.error("Could not save best altitude:", error);
       });
     },

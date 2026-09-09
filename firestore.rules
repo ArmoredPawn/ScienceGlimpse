@@ -25,6 +25,28 @@ service cloud.firestore {
         && username.matches('^[a-z0-9_]+$');
     }
 
+    /*
+     * Article-reading rewards are the ONLY way to mint tokens, and the
+     * document ID doubles as the article ID — a value the client picks
+     * freely. Without this check ANY string was accepted, so a script
+     * could invent unlimited articles ("fake1", "fake2", ...), drive
+     * each invented reading session to completion, and mint 10 tokens
+     * apiece. Restricting the ID to the real article range caps what
+     * anyone can ever earn at 10 x the article count, because each
+     * article's reward document can only be created once (create-only
+     * below — no update, no delete).
+     *
+     * IMPORTANT: articles live in src/data/articles.json with sequential
+     * integer IDs. When a new article is published, raise the upper
+     * bound here to match its ID — otherwise that article will (safely)
+     * award no tokens.
+     */
+    function validArticleId(articleId) {
+      return articleId.matches('^[1-9][0-9]{0,2}$')
+        && int(articleId) >= 1
+        && int(articleId) <= 37;
+    }
+
     function validProfile(profile) {
       return profile.keys().hasOnly([
           'username',
@@ -114,10 +136,75 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Public Science Summit leaderboard. A denormalized copy of each
+    // player's username + best altitude (src/hooks/useBestAltitude.ts).
+    // users/{uid} is private (see above), so this is the only place a
+    // username is ever exposed publicly — deliberately minimal (no
+    // photo, no uid in the document body) since anyone, signed in or
+    // not, can read it.
+    //
+    // Players publish their own entry. Moderators can also publish one
+    // for anybody (the Mod dashboard's "Sync leaderboard" button, which
+    // backfills records set before this collection existed). The
+    // getAfter() check applies to BOTH: an entry must match that
+    // player's real gameStats altitude, so not even a moderator can
+    // invent a score — they can only publish a genuine one.
+    match /leaderboard/{userId} {
+      allow get, list: if true;
+
+      allow create, update: if (isOwner(userId) || isModerator())
+        && request.resource.data.keys().hasOnly([
+          'username',
+          'bestAltitude',
+          'updatedAt'
+        ])
+        && validUsername(request.resource.data.username)
+        && request.resource.data.bestAltitude is int
+        && request.resource.data.bestAltitude >= 0
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.bestAltitude == getAfter(
+          /databases/$(database)/documents/users/$(userId)/gameStats/scienceSummit
+        ).data.bestAltitude;
+
+      allow delete: if false;
+    }
+
+    // In-progress Science Summit run, so a player can pause, close the
+    // tab, and pick the same climb back up later instead of restarting
+    // from the ground (src/games/.../ScienceSummit.tsx). Cleared by the
+    // client the moment a run actually ends (lava or falling out of
+    // tokens), so a saved doc existing at all means "still climbing."
+    // Private — nobody but the player themselves needs this.
+    match /users/{userId}/gameRuns/{runId} {
+      allow get, list: if isOwner(userId);
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'altitude',
+          'checkpointX',
+          'checkpointY',
+          'maxHeight',
+          'updatedAt'
+        ])
+        && request.resource.data.altitude is int
+        && request.resource.data.altitude >= 0
+        && request.resource.data.checkpointX is number
+        && request.resource.data.checkpointY is number
+        && request.resource.data.maxHeight is int
+        && request.resource.data.maxHeight >= 0
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    // The article ID is checked on BOTH create and update. Update needs
+    // it too: without it, reading sessions invented before this rule
+    // existed could still be driven to completion.
     match /users/{userId}/readingProgress/{articleId} {
       allow get, list: if isOwner(userId);
 
       allow create: if isOwner(userId)
+        && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && request.resource.data.activeSeconds == 15
         && request.resource.data.rewarded == false
@@ -125,6 +212,7 @@ service cloud.firestore {
         && request.resource.data.lastHeartbeatAt == request.time;
 
       allow update: if isOwner(userId)
+        && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && resource.data.rewarded == false
         && request.resource.data.articleId
@@ -165,11 +253,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Tokens are minted here and nowhere else. The article ID must be a
+    // real article (validArticleId), which is what bounds a reader's
+    // lifetime earnings — one 10-token document per real article, and
+    // these are immutable once written.
     match /users/{userId}/tokenLedger/{articleId} {
       allow get, list: if isOwner(userId)
         || isModerator();
 
       allow create: if isOwner(userId)
+        && validArticleId(articleId)
         && request.resource.data.keys().hasAll([
           'articleId',
           'amount',

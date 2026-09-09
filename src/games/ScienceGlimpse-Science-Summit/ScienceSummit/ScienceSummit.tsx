@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useGameEnergy } from "@/hooks/useGameEnergy";
 import { useBestAltitude } from "@/hooks/useBestAltitude";
+import { useSavedRun, type SavedRun } from "@/hooks/useSavedRun";
 
 type Platform = {
   id: number;
@@ -23,15 +24,6 @@ type Player = {
   height: number;
   grounded: boolean;
   jumpsLeft: number;
-};
-
-type Props = {
-  /**
-   * Energy used when the player is not signed in (practice mode, not
-   * tied to real ScienceGlimpse tokens). Signed-in players always start
-   * with their real token balance instead — see useGameEnergy.
-   */
-  practiceEnergy?: number;
 };
 
 const WORLD_WIDTH = 1000;
@@ -229,23 +221,25 @@ function makeInitialPlatforms(): Platform[] {
   ];
 }
 
-export default function ScienceSummit({
-  practiceEnergy = 35,
-}: Props) {
-  const { user } = useAuth();
+export default function ScienceSummit() {
+  const { user, loading: authLoading } = useAuth();
   const gameEnergy = useGameEnergy();
 
   /*
-   * Signed-in players play with their real ScienceGlimpse token balance
-   * as energy. Signed-out players get a fixed practice pool that is
-   * never persisted.
+   * Science Summit is signed-in only (see the gate at the bottom of this
+   * component), so energy always starts at the player's real
+   * ScienceGlimpse token balance.
    */
-  const startingEnergy = gameEnergy.signedIn
-    ? gameEnergy.balance ?? 0
-    : practiceEnergy;
+  const startingEnergy = gameEnergy.balance ?? 0;
 
-  const canStartGame =
-    !gameEnergy.signedIn || gameEnergy.balance !== null;
+  const canStartGame = gameEnergy.balance !== null;
+
+  const {
+    savedRun,
+    loading: savedRunLoading,
+    saveRun,
+    clearRun,
+  } = useSavedRun(user?.uid ?? null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -337,9 +331,88 @@ export default function ScienceSummit({
   );
 
   /*
-   * Reset the entire game.
+   * Reset the game — either a fresh climb from the ground, or (when
+   * resumeFrom is given) a saved climb picked back up at its checkpoint.
+   * Resuming can't recreate the exact platforms the player had climbed
+   * past — they were never stored — so it regenerates a fresh set above
+   * the checkpoint using the same procedural generator normal play uses,
+   * which is indistinguishable from how new platforms already appear
+   * during a run.
    */
-  const resetGame = useCallback(() => {
+  const resetGame = useCallback((resumeFrom?: SavedRun) => {
+    if (resumeFrom) {
+      const checkpoint = {
+        x: resumeFrom.checkpointX,
+        y: resumeFrom.checkpointY,
+      };
+
+      playerRef.current = {
+        x: checkpoint.x,
+        y: checkpoint.y,
+        vx: 0,
+        vy: 0,
+        width: PLAYER_W,
+        height: PLAYER_H,
+        grounded: false,
+        jumpsLeft: 2,
+      };
+
+      const seedWidth = 220;
+
+      const seedPlatform: Platform = {
+        id: 0,
+        x: clamp(
+          checkpoint.x + PLAYER_W / 2 - seedWidth / 2,
+          20,
+          WORLD_WIDTH - seedWidth - 20
+        ),
+        y: checkpoint.y + PLAYER_H,
+        width: seedWidth,
+        height: PLATFORM_H,
+      };
+
+      const generated = generatePlatforms(
+        seedPlatform.y,
+        12,
+        1,
+        seedPlatform
+      );
+
+      platformsRef.current = [seedPlatform, ...generated];
+
+      nextPlatformIdRef.current = 1 + generated.length;
+
+      cameraYRef.current = checkpoint.y - VIEW_HEIGHT / 2;
+
+      lavaYRef.current = checkpoint.y + (LAVA_START_Y - 595);
+
+      maxHeightRef.current = resumeFrom.maxHeight;
+
+      checkpointRef.current = checkpoint;
+
+      jumpsSinceChargeRef.current = 0;
+
+      energyRef.current = startingEnergy;
+
+      setEnergyState(startingEnergy);
+
+      setHeight(resumeFrom.altitude);
+
+      setMessage("");
+
+      setGameOver(false);
+
+      setDiedInLava(false);
+
+      setPaused(false);
+
+      setStarted(true);
+
+      lastTimeRef.current = 0;
+
+      return;
+    }
+
     playerRef.current = {
       x: 483,
       y: 595,
@@ -520,6 +593,63 @@ export default function ScienceSummit({
     paused,
     started,
   ]);
+
+  /*
+   * Save the in-progress climb so it can be resumed later — whenever the
+   * player pauses, and as a best-effort catch-all whenever the tab is
+   * hidden or the page is being left (covers closing the tab or
+   * navigating away without pressing pause first).
+   */
+  useEffect(() => {
+    if (!started || gameOver) {
+      return;
+    }
+
+    const snapshotRun = () => {
+      saveRun({
+        altitude: maxHeightRef.current,
+        checkpointX: checkpointRef.current.x,
+        checkpointY: checkpointRef.current.y,
+        maxHeight: maxHeightRef.current,
+      });
+    };
+
+    if (paused) {
+      snapshotRun();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        snapshotRun();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.addEventListener("pagehide", snapshotRun);
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener("pagehide", snapshotRun);
+    };
+  }, [started, gameOver, paused, saveRun]);
+
+  /*
+   * A run that actually ends (lava, or running out of tokens and
+   * falling) clears any saved climb — dying always means starting over.
+   */
+  useEffect(() => {
+    if (gameOver) {
+      clearRun();
+    }
+  }, [gameOver, clearRun]);
 
   /*
    * Main game loop.
@@ -1425,16 +1555,40 @@ export default function ScienceSummit({
             const horizontal =
               overlapWidth >= 6;
 
+            const newBottom =
+              player.y + player.height;
+
+            /*
+             * The frame the player's feet actually pass the platform's
+             * top surface.
+             */
             const crossed =
-              oldBottom <=
-                platform.y &&
-              player.y +
-                player.height >=
-                platform.y;
+              oldBottom <= platform.y &&
+              newBottom >= platform.y;
+
+            /*
+             * A platform is solid for its whole thickness, not just for
+             * the single frame its top surface is crossed. Without this,
+             * a crossing frame that failed the horizontal test above by
+             * a hair (easy to do on the narrower platforms higher up)
+             * was unrecoverable: every later frame has oldBottom already
+             * past platform.y, so `crossed` could never be true again
+             * and the player sank straight through a platform their
+             * feet were visibly still inside. Catching feet that are
+             * within the platform's band makes landings stick no matter
+             * which frame the overlap lines up on. Once the player is
+             * fully below the platform's underside they've genuinely
+             * passed it and this stops applying, so platforms a jump
+             * legitimately drops past still behave as before.
+             */
+            const insideBand =
+              newBottom >= platform.y &&
+              newBottom <=
+                platform.y + platform.height;
 
             if (
               horizontal &&
-              crossed &&
+              (crossed || insideBand) &&
               (!landedPlatform ||
                 platform.y <
                   landedPlatform.y)
@@ -1816,6 +1970,68 @@ export default function ScienceSummit({
     height
   );
 
+  /*
+   * Science Summit is signed-in only — a player's real ScienceGlimpse
+   * tokens power the climb, and their best altitude goes on the public
+   * leaderboard, so there's no anonymous practice mode anymore.
+   */
+  if (authLoading) {
+    return (
+      <div className="sg-summit-shell" style={{ paddingTop: "80px" }}>
+        <Navigation />
+
+        <div className="sg-summit-start">
+          <div className="sg-summit-card">
+            <div className="sg-orb">🧪</div>
+            <h2>Loading...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="sg-summit-shell" style={{ paddingTop: "80px" }}>
+        <Navigation />
+
+        <div className="sg-summit-start">
+          <div className="sg-summit-card">
+            <div className="sg-orb">🔒</div>
+
+            <h2>Sign In to Play</h2>
+
+            <p>
+              Science Summit is only available to signed-in
+              ScienceGlimpse members — your real tokens power your
+              climb, and your best altitude appears on the leaderboard.
+            </p>
+
+            <Link
+              to="/login"
+              className="sg-primary-button"
+              style={{
+                display: "block",
+                textAlign: "center",
+                textDecoration: "none",
+              }}
+            >
+              Log In to Play
+            </Link>
+
+            <Link
+              to="/leaderboard"
+              className="sg-note"
+              style={{ display: "block", marginTop: 14 }}
+            >
+              View the leaderboard →
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="sg-summit-shell" style={{ paddingTop: "80px" }}>
       <Navigation />
@@ -1837,41 +2053,58 @@ export default function ScienceSummit({
           </p>
         </div>
 
-        {started && (
-          <div className="sg-summit-stats">
-            <div className="sg-stat">
-              <span>
-                ALTITUDE
-              </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 10,
+          }}
+        >
+          <Link
+            to="/leaderboard"
+            className="sg-secondary-button"
+            style={{ textDecoration: "none" }}
+          >
+            Leaderboard
+          </Link>
 
-              <strong>
-                {gameHeight.toLocaleString()}{" "}
-                m
-              </strong>
+          {started && (
+            <div className="sg-summit-stats">
+              <div className="sg-stat">
+                <span>
+                  ALTITUDE
+                </span>
+
+                <strong>
+                  {gameHeight.toLocaleString()}{" "}
+                  m
+                </strong>
+              </div>
+
+              <div className="sg-stat">
+                <span>
+                  BEST
+                </span>
+
+                <strong>
+                  {bestHeight.toLocaleString()}{" "}
+                  m
+                </strong>
+              </div>
+
+              <div className="sg-stat sg-energy">
+                <span>
+                  ENERGY (TOKENS)
+                </span>
+
+                <strong>
+                  {energy}
+                </strong>
+              </div>
             </div>
-
-            <div className="sg-stat">
-              <span>
-                BEST
-              </span>
-
-              <strong>
-                {bestHeight.toLocaleString()}{" "}
-                m
-              </strong>
-            </div>
-
-            <div className="sg-stat sg-energy">
-              <span>
-                {user ? "ENERGY (TOKENS)" : "ENERGY (PRACTICE)"}
-              </span>
-
-              <strong>
-                {energy}
-              </strong>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* START SCREEN */}
@@ -1883,7 +2116,9 @@ export default function ScienceSummit({
             </div>
 
             <h2>
-              Reach the Summit
+              {savedRun
+                ? "Continue Your Climb"
+                : "Reach the Summit"}
             </h2>
 
             <p>
@@ -1928,43 +2163,52 @@ export default function ScienceSummit({
 
             <button
               className="sg-primary-button"
-              onClick={resetGame}
-              disabled={!canStartGame}
+              onClick={() => resetGame(savedRun ?? undefined)}
+              disabled={!canStartGame || savedRunLoading}
             >
-              {canStartGame
-                ? "Start Climbing"
-                : "Loading your tokens..."}
+              {!canStartGame
+                ? "Loading your tokens..."
+                : savedRunLoading
+                  ? "Checking for a saved climb..."
+                  : savedRun
+                    ? `Resume Climb (${savedRun.altitude.toLocaleString()} m)`
+                    : "Start Climbing"}
             </button>
+
+            {savedRun && !savedRunLoading && (
+              <button
+                type="button"
+                className="sg-secondary-button"
+                style={{ width: "100%", marginTop: 10 }}
+                onClick={() => {
+                  clearRun();
+                  resetGame();
+                }}
+              >
+                Start a New Climb Instead
+              </button>
+            )}
 
             <div className="sg-note">
               Platforms are solid from
               below — jump up beside one
               and land on top, you can't
               rise straight through it.
-              Your highest altitude is
-              saved on this device.
+              {savedRun
+                ? " Pausing or leaving mid-climb saves your progress, so you can pick it back up later."
+                : " Pause or leave mid-climb to save your progress and continue later."}
             </div>
 
-            {user ? (
-              <div className="sg-note">
-                Signed in — energy starts at
-                your real ScienceGlimpse
-                token balance
-                {gameEnergy.balance !== null
-                  ? ` (${gameEnergy.balance})`
-                  : ""}
-                . Every 10 jumps spends 1 of
-                your real tokens.
-              </div>
-            ) : (
-              <div className="sg-note">
-                Practice mode — energy here
-                isn't tied to real tokens.{" "}
-                <Link to="/login">Sign in</Link>{" "}
-                to play with your real
-                ScienceGlimpse tokens.
-              </div>
-            )}
+            <div className="sg-note">
+              Energy starts at your real
+              ScienceGlimpse token balance
+              {gameEnergy.balance !== null
+                ? ` (${gameEnergy.balance})`
+                : ""}
+              . Every 10 jumps spends 1 of
+              your real tokens — read
+              articles to earn more.
+            </div>
           </div>
         </div>
       ) : (
@@ -2050,9 +2294,7 @@ export default function ScienceSummit({
 
                   <button
                     className="sg-primary-button"
-                    onClick={
-                      resetGame
-                    }
+                    onClick={() => resetGame()}
                   >
                     Climb Again
                   </button>
@@ -2134,9 +2376,7 @@ export default function ScienceSummit({
 
             <button
               className="sg-secondary-button danger"
-              onClick={
-                resetGame
-              }
+              onClick={() => resetGame()}
             >
               ↻ Restart
             </button>

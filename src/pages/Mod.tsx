@@ -12,11 +12,14 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 import {
   Coins,
+  Mountain,
   RefreshCw,
   ShieldCheck,
+  Trophy,
   UserRound,
 } from "lucide-react";
 
@@ -28,13 +31,21 @@ import { useAuth } from "../context/AuthContext";
 interface UserSummary {
   uid: string;
   username: string;
+  /**
+   * The stored username only when it's actually valid to publish
+   * (firestore.rules validUsername) — null when the profile has none.
+   */
+  publishableUsername: string | null;
   photoURL: string;
   automaticTokens: number;
   adjustments: number;
   gameTokens: number;
   balance: number;
   completedArticles: number;
+  bestAltitude: number;
 }
+
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 const Mod = () => {
   const { user, loading: authLoading } = useAuth();
@@ -50,6 +61,7 @@ const Mod = () => {
 
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -117,6 +129,7 @@ const Mod = () => {
             ledgerSnapshot,
             adjustmentSnapshot,
             gameLedgerSnapshot,
+            gameStatsSnapshot,
           ] = await Promise.all([
             getDocs(
               collection(
@@ -140,6 +153,15 @@ const Mod = () => {
                 "users",
                 userDocument.id,
                 "gameLedger",
+              ),
+            ),
+            getDoc(
+              doc(
+                db,
+                "users",
+                userDocument.id,
+                "gameStats",
+                "scienceSummit",
               ),
             ),
           ]);
@@ -186,12 +208,23 @@ const Mod = () => {
               0,
             );
 
+          const storedAltitude = gameStatsSnapshot.exists()
+            ? gameStatsSnapshot.data().bestAltitude
+            : 0;
+
+          const storedUsername =
+            typeof profile.username === "string"
+              ? profile.username
+              : null;
+
           return {
             uid: userDocument.id,
-            username:
-              typeof profile.username === "string"
-                ? profile.username
-                : "No username",
+            username: storedUsername ?? "No username",
+            publishableUsername:
+              storedUsername !== null &&
+              USERNAME_PATTERN.test(storedUsername)
+                ? storedUsername
+                : null,
             photoURL:
               typeof profile.photoURL === "string"
                 ? profile.photoURL
@@ -204,6 +237,10 @@ const Mod = () => {
               automaticTokens + adjustments + gameTokens,
             ),
             completedArticles: ledgerSnapshot.size,
+            bestAltitude:
+              typeof storedAltitude === "number"
+                ? storedAltitude
+                : 0,
           };
         }),
       );
@@ -247,6 +284,64 @@ const Mod = () => {
   const selectedUser = users.find(
     (currentUser) => currentUser.uid === selectedUid,
   );
+
+  /*
+   * Publish every player's recorded altitude to the public leaderboard.
+   * Records set before the leaderboard collection existed were never
+   * published (a player only publishes their own on a new best, or the
+   * next time they open the game), so this backfills them in one go.
+   * Firestore rules still check each altitude against the player's real
+   * gameStats doc, so this can only publish genuine records.
+   */
+  const handleLeaderboardSync = async () => {
+    const publishable = users.filter(
+      (currentUser) =>
+        currentUser.publishableUsername !== null &&
+        currentUser.bestAltitude > 0,
+    );
+
+    if (publishable.length === 0) {
+      setErrorMessage(
+        "No users have a recorded altitude and a valid username to publish.",
+      );
+      return;
+    }
+
+    setSyncing(true);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const batch = writeBatch(db);
+
+      for (const currentUser of publishable) {
+        batch.set(doc(db, "leaderboard", currentUser.uid), {
+          username: currentUser.publishableUsername,
+          bestAltitude: currentUser.bestAltitude,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      setMessage(
+        `Published ${publishable.length} ${
+          publishable.length === 1 ? "climber" : "climbers"
+        } to the leaderboard.`,
+      );
+    } catch (error) {
+      console.error(
+        "Could not sync the leaderboard:",
+        error,
+      );
+
+      setErrorMessage(
+        "The leaderboard could not be synced.",
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleAdjustment = async (
     event: FormEvent<HTMLFormElement>,
@@ -395,21 +490,54 @@ const Mod = () => {
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void loadUsers()}
-            disabled={loadingUsers}
-          >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${
-                loadingUsers ? "animate-spin" : ""
-              }`}
-            />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleLeaderboardSync()}
+              disabled={syncing || loadingUsers || users.length === 0}
+            >
+              <Trophy className="mr-2 h-4 w-4" />
 
-            Refresh
-          </Button>
+              {syncing
+                ? "Syncing..."
+                : "Sync leaderboard"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void loadUsers()}
+              disabled={loadingUsers}
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${
+                  loadingUsers ? "animate-spin" : ""
+                }`}
+              />
+
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {message && (
+          <p
+            role="status"
+            className="mt-6 text-sm text-green-700"
+          >
+            {message}
+          </p>
+        )}
+
+        {errorMessage && (
+          <p
+            role="alert"
+            className="mt-6 text-sm text-destructive"
+          >
+            {errorMessage}
+          </p>
+        )}
 
         <section className="mt-8 rounded-2xl border border-border bg-card p-6">
           <h2 className="text-xl font-semibold">
@@ -498,24 +626,6 @@ const Mod = () => {
                 </p>
               )}
 
-              {message && (
-                <p
-                  role="status"
-                  className="text-sm text-green-700"
-                >
-                  {message}
-                </p>
-              )}
-
-              {errorMessage && (
-                <p
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
-                  {errorMessage}
-                </p>
-              )}
-
               <Button
                 type="submit"
                 disabled={saving}
@@ -555,6 +665,9 @@ const Mod = () => {
                   </th>
                   <th className="px-6 py-4">
                     Articles
+                  </th>
+                  <th className="px-6 py-4">
+                    Best climb
                   </th>
                   <th className="px-6 py-4" />
                 </tr>
@@ -618,6 +731,19 @@ const Mod = () => {
 
                     <td className="px-6 py-4">
                       {currentUser.completedArticles}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {currentUser.bestAltitude > 0 ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Mountain className="h-4 w-4 text-muted-foreground" />
+                          {currentUser.bestAltitude.toLocaleString()} m
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          —
+                        </span>
+                      )}
                     </td>
 
                     <td className="px-6 py-4">

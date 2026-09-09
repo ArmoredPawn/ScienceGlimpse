@@ -7,6 +7,7 @@ import HotSights from '@/components/HotSights';
 import ArticleFeed from '@/components/ArticleFeed';
 import FoundersSection from '@/components/FoundersSection';
 import WhatIsScienceGlimpse from '@/components/WhatIsScienceGlimpse';
+import GameSection from '@/components/GameSection';
 import JuniorWritersPopup from '@/components/JuniorWritersPopup';
 
 type Category = {
@@ -53,6 +54,8 @@ const Index: React.FC = () => {
           centerText={true}
           paragraphSize="normal"
         />
+
+        <GameSection />
 
         <HotSights />
 

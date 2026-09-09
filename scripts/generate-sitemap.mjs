@@ -19,6 +19,8 @@ const staticPages = [
   '/members',
   '/submission',
   '/contact',
+  '/game',
+  '/leaderboard',
 ];
 
 const staticUrls = staticPages.map(

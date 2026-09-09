@@ -268,6 +268,15 @@ const Profile = () => {
               {tokens === 1 ? "token" : "tokens"}
             </span>
           </div>
+
+          <Button
+            type="button"
+            variant="neuron"
+            className="mt-3 w-full"
+            onClick={() => navigate("/game")}
+          >
+            Spend Tokens — Play Science Summit
+          </Button>
         </div>
 
         <form

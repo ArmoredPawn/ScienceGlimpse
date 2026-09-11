@@ -1,30 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const SITE_URL = 'https://scienceglimpse.org';
+import { SITE_URL, staticPages } from './site-pages.mjs';
 
 const articlesPath = path.resolve('src/data/articles.json');
 const outputPath = path.resolve('public/sitemap.xml');
 
-const articles = JSON.parse(
-  fs.readFileSync(articlesPath, 'utf8')
-);
-
-const staticPages = [
-  '/',
-  '/about',
-  '/articles',
-  '/classes',
-  '/events',
-  '/members',
-  '/submission',
-  '/contact',
-  '/game',
-  '/leaderboard',
-];
+const articles = JSON.parse(fs.readFileSync(articlesPath, 'utf8'));
 
 const staticUrls = staticPages.map(
-  (page) => `${SITE_URL}${page}`
+  (page) => `${SITE_URL}${page.path === '/' ? '/' : page.path}`
 );
 
 const articleUrls = articles.map((article) => {

@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "prebuild": "node scripts/generate-sitemap.mjs",
-    "postbuild": "node scripts/generate-article-pages.mjs"
+    "postbuild": "node scripts/prerender-pages.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

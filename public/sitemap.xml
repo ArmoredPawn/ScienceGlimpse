@@ -4,16 +4,13 @@
     <loc>https://scienceglimpse.org/</loc>
   </url>
   <url>
-    <loc>https://scienceglimpse.org/about</loc>
-  </url>
-  <url>
     <loc>https://scienceglimpse.org/articles</loc>
   </url>
   <url>
-    <loc>https://scienceglimpse.org/classes</loc>
+    <loc>https://scienceglimpse.org/about</loc>
   </url>
   <url>
-    <loc>https://scienceglimpse.org/events</loc>
+    <loc>https://scienceglimpse.org/classes</loc>
   </url>
   <url>
     <loc>https://scienceglimpse.org/members</loc>
@@ -29,6 +26,9 @@
   </url>
   <url>
     <loc>https://scienceglimpse.org/leaderboard</loc>
+  </url>
+  <url>
+    <loc>https://scienceglimpse.org/donate</loc>
   </url>
   <url>
     <loc>https://scienceglimpse.org/article/the-lightless-stars</loc>

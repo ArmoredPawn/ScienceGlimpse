@@ -27,6 +27,10 @@ export const staticPages = [
     title: 'Science Articles',
     description:
       'Browse every ScienceGlimpse article — student-written explainers on physics, biology, chemistry, technology and more, each about a five-minute read.',
+    // Pre-render the full list of article links here. Without it the only
+    // route to an article is the sitemap: the rendered listing is built by
+    // JS, so the first response contains no links for a crawler to follow.
+    includeArticleIndex: true,
   },
   {
     path: '/about',

@@ -8,16 +8,26 @@ const outputPath = path.resolve('public/sitemap.xml');
 
 const articles = JSON.parse(fs.readFileSync(articlesPath, 'utf8'));
 
-const staticUrls = staticPages.map(
-  (page) => `${SITE_URL}${page.path === '/' ? '/' : page.path}`
-);
+const staticUrls = staticPages.map((page) => ({
+  loc: `${SITE_URL}${page.path === '/' ? '/' : page.path}`,
+}));
+
+// Only emit lastmod when the date is a real YYYY-MM-DD; an invalid value
+// is worse than none, since crawlers may ignore the whole entry.
+const isValidDate = (value) =>
+  typeof value === 'string' &&
+  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+  !Number.isNaN(Date.parse(value));
 
 const articleUrls = articles.map((article) => {
   if (!article.slug) {
     throw new Error(`Article ${article.id} has no slug.`);
   }
 
-  return `${SITE_URL}/article/${article.slug}`;
+  return {
+    loc: `${SITE_URL}/article/${article.slug}`,
+    ...(isValidDate(article.date) ? { lastmod: article.date } : {}),
+  };
 });
 
 const urls = [...staticUrls, ...articleUrls];
@@ -27,7 +37,9 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 ${urls
   .map(
     (url) => `  <url>
-    <loc>${url}</loc>
+    <loc>${url.loc}</loc>${
+      url.lastmod ? `\n    <lastmod>${url.lastmod}</lastmod>` : ''
+    }
   </url>`
   )
   .join('\n')}

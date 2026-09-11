@@ -174,9 +174,6 @@ const buildArticlePage = (article) => {
   html = replaceMeta(html, 'property', 'og:image', imageUrl);
   html = replaceMeta(html, 'name', 'twitter:image', imageUrl);
 
-  // The template's twitter:site points at the project scaffold's account.
-  html = html.replace(metaPattern('name', 'twitter:site'), '');
-
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -219,6 +216,35 @@ const buildArticlePage = (article) => {
   );
 };
 
+// Crawlable links to every article, so an article is reachable by following
+// a link and not only by reading the sitemap.
+const renderArticleIndex = () => {
+  const items = articles
+    .map(
+      (article) =>
+        `<li style="margin-bottom:1rem"><a href="/article/${escapeAttribute(
+          article.slug,
+        )}">${escapeAttribute(article.title)}</a>${
+          article.excerpt
+            ? `<br /><span style="opacity:.7">${escapeAttribute(
+                article.excerpt,
+              )}</span>`
+            : ''
+        }</li>`,
+    )
+    .join('');
+
+  return [
+    '<div id="root">',
+    '<main style="max-width:48rem;margin:0 auto;padding:5rem 1rem 2rem;',
+    'font-family:system-ui,-apple-system,sans-serif;line-height:1.7">',
+    '<h1 style="font-size:2.25rem;font-weight:700;margin-bottom:1rem">Science Articles</h1>',
+    `<ul style="list-style:none;padding:0">${items}</ul>`,
+    '</main>',
+    '</div>',
+  ].join('');
+};
+
 const buildStaticPage = (page) => {
   const pageUrl = `${SITE_URL}${page.path}`;
   const fullTitle = `${page.title} | ${SITE_NAME}`;
@@ -229,7 +255,15 @@ const buildStaticPage = (page) => {
   html = replaceMeta(html, 'name', 'description', description);
   html = replaceMeta(html, 'property', 'og:title', fullTitle);
   html = replaceMeta(html, 'property', 'og:description', description);
-  html = html.replace(metaPattern('name', 'twitter:site'), '');
+
+  if (page.includeArticleIndex) {
+    html = replaceOrFail(
+      html,
+      /<div id="root">\s*<\/div>/i,
+      renderArticleIndex(),
+      'the empty <div id="root">',
+    );
+  }
 
   return appendToHead(html, [
     `<link rel="canonical" href="${escapeAttribute(pageUrl)}" />`,

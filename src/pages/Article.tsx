@@ -1,5 +1,10 @@
 import React, { useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Coins } from 'lucide-react';
@@ -43,12 +48,20 @@ const updateCanonicalUrl = (url: string) => {
 };
 
 const Article = () => {
+  const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const id = Number(searchParams.get('id'));
 
-  const article = articles.find(
-    (currentArticle) => Number(currentArticle.id) === id
-  );
+  // Legacy /article?id=N links stay alive and redirect to the slug URL.
+  const legacyId = Number(searchParams.get('id'));
+
+  const article = slug
+    ? articles.find(
+        (currentArticle) => currentArticle.slug === slug
+      )
+    : articles.find(
+        (currentArticle) =>
+          Number(currentArticle.id) === legacyId
+      );
 
   const {
     articleRef,
@@ -86,10 +99,7 @@ const Article = () => {
       return;
     }
 
-    const articleUrl =
-      `${SITE_URL}/article?id=${encodeURIComponent(
-        String(article.id)
-      )}`;
+    const articleUrl = `${SITE_URL}/article/${article.slug}`;
 
     const descriptionSource =
       article.excerpt || article.content || article.title;
@@ -178,6 +188,12 @@ const Article = () => {
         ?.remove();
     };
   }, [article]);
+
+  if (!slug && article) {
+    return (
+      <Navigate to={`/article/${article.slug}`} replace />
+    );
+  }
 
   if (!article) {
     return (

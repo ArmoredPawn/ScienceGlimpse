@@ -1,6 +1,7 @@
 [
     {
         "id": 1,
+        "slug": "the-lightless-stars",
         "title": "The Lightless Stars",
         "excerpt": "Diving into the mystery surrounding black holes, including what they are and how they're formed in an engaging and curious manner.", 
         "category": ["Physics", "Astronomy"],
@@ -13,6 +14,7 @@
     },
     {
         "id": 2,
+        "slug": "machine-learning-the-best-data-analyzer",
         "title": "Machine Learning: The Best Data Analyzer",
         "excerpt": "Machine learning (ML) is a subset of artificial intelligence that is able to learn patterns and correlations in data.",
         "category": ["Technology", "Artificial Intelligence"],
@@ -25,6 +27,7 @@
     },
     {
         "id": 3,
+        "slug": "chemical-reactions-the-basis-of-change",
         "title": "Chemical Reactions: The Basis of Change",
         "excerpt": "Chemical reactions occur no matter where we are in the universe, and serve as the foundation for almost every single process on our planet.",
         "category": "Chemistry",
@@ -37,6 +40,7 @@
     },
     {
         "id": 4,
+        "slug": "the-phantom-planet",
         "title": "The Phantom Planet",
         "excerpt": "Dives into the mystery of the unseen, yet irrefutable, objects that have been observed in the past, such as Neptune and Pluto, and how, using this same process, the possibility of a ninth planet beyond Pluto residing within the Kuiper belt.",
         "category": "Astronomy",
@@ -49,6 +53,7 @@
     },
     {
         "id": 5,
+        "slug": "from-hail-to-algorithm-the-rise-of-autonomous-taxis",
         "title": "From Hail to Algorithm: The Rise of Autonomous Taxis",
         "excerpt": "No taxi driver? No problem. The future of driverless taxis is on its way to your doorstep. So before they arrive, let’s explore what they have to offer.",
         "category": ["Engineering", "Technology"],
@@ -61,6 +66,7 @@
     },
     {
         "id": 6,
+        "slug": "crispr-the-forefront-of-genetic-editing",
         "title": "CRISPR: The Forefront of Genetic Editing",
         "excerpt": "CRISPR is like nature’s ultimate DNA toolkit, letting scientists edit genes with amazing precision — but also raises big questions about how far we should go.",
         "category": "Medicine",
@@ -73,6 +79,7 @@
     },
     {
         "id": 7,
+        "slug": "a-universe-sized-crunch-bar",
         "title": "A Universe-Sized Crunch Bar",
         "excerpt": "Discover the ways that the universe could end and how it began - with a delicious candy bar.",
         "category": ["Junior", "Physics"],
@@ -85,6 +92,7 @@
     },
     {
         "id": 8,
+        "slug": "the-atlantic-puffin",
         "title": "The Atlantic Puffin",
         "excerpt": "The Atlantic Puffin is a tiny, colorful bird with a big personality! Discover where they live, what they eat, and how people are helping them survive.",
         "category": ["Creature Profile", "Biology"],
@@ -97,6 +105,7 @@
     },
     {
         "id": 9,
+        "slug": "the-best-studying-strategy",
         "title": "The Best Studying Strategy",
         "excerpt": "Active recall is an art that allows our brains to retrieve information in record time, allowing people to use this process in every career.",
         "category": "Psychology",
@@ -109,6 +118,7 @@
     },
     {
         "id": 10,
+        "slug": "a-sliver-away",
         "title": "A Sliver Away",
         "excerpt": "Bending spoons, moving objects, or genius-level intellect. What could the rest of the so-called “90%” of our brain actually do?",
         "category": ["Debunked", "Psychology"],
@@ -121,6 +131,7 @@
     },    
     {
         "id": 11,
+        "slug": "industrial-engineering-the-secret-behind-fast-food-popularity",
         "title": "Industrial Engineering: The Secret Behind Fast Food Popularity",
         "excerpt": "What makes fast food establishments so successful? You may think it's the food, the speed, or even the convenience, but it's actually the engineering of the franchise.",
         "category": "Engineering",
@@ -133,6 +144,7 @@
     },
     {
         "id": 12,
+        "slug": "kumimanu-fordycei-a-penguin-the-size-of-a-human",
         "title": "Kumimanu Fordycei: A Penguin the Size of a Human",
         "excerpt": "Meet the giant penguins that once ruled the seas. Towering birds whose rise and fall reveal how quickly life can change on our planet.",
         "category": ["Creature Profile", "Biology"],
@@ -145,6 +157,7 @@
     },
     {
         "id": 13,
+        "slug": "three-weeks-of-work",
         "title": "Three Weeks of Work",
         "excerpt": "Having productive habits is easier said than done. But throughout attempts to get good habits, personal experience leads to one question: does it really only take 21 days to build habits? ",
         "category": ["Psychology", "Debunked"],
@@ -157,6 +170,7 @@
     }, 
     {
         "id": 14,
+        "slug": "nature-vs-nurture-are-criminals-born-or-made",
         "title": "Nature vs Nurture: Are Criminals Born Or Made?",
         "excerpt": "From a simple story to one of the biggest debates of our time – can the criminals we shun, actually help their behavior, or is it just programming?",
         "category": ["Psychology"],
@@ -169,6 +183,7 @@
     },
     {
         "id": 15,
+        "slug": "pittsburgh-a-city-of-hills-bridges-and-steel",
         "title": "Pittsburgh: A City of Hills, Bridges, and Steel",
         "excerpt": "Understand how the scenic and beautiful natural landscape and surrounding geography shape Pittsburgh's identity as the “Steel City.”",
         "category": ["Engineering", "Chemistry", "Earth Science"],
@@ -181,6 +196,7 @@
     },
     {
         "id": 16,
+        "slug": "photosynthesis-explained",
         "title": "Photosynthesis: Explained",
         "excerpt": "Not many people know what photosynthesis really is. Dive into the world of plants and how sunlight to you is food to them!",
         "category": ["Biology"],
@@ -193,6 +209,7 @@
     },
     {
         "id": 17,
+        "slug": "the-tug-of-war-of-procrastination",
         "title": "The Tug-of-War Of Procrastination ",
         "excerpt": "Homework needs to be done…a bit later. Learn why people procrastinate, and hopefully learn why you have it.",
         "category": ["Psychology", "Junior"],
@@ -205,6 +222,7 @@
     },
     {
         "id": 18,
+        "slug": "sustainable-marketing",
         "title": "Sustainable Marketing",
         "excerpt": "As business continues to grow and grow, so does the harm that the government incurs. In order to make a statement and save face, companies are starting to switch over to sustainable marketing, but what does it really mean for them and the environment?",
         "category": ["Psychology"],
@@ -217,6 +235,7 @@
     },
     {
         "id": 19,
+        "slug": "the-real-life-bigfoot-gigantopithecus-blacki",
         "title": "The Real Life Bigfoot: Gigantopithecus Blacki",
         "excerpt": "Stories about Bigfoot have fascinated people for decades. Descriptions of a towering, ape-like creature roaming dense forests appear in cultures around the world, from North America’s Bigfoot to the Himalayan Yeti.",
         "category": ["Biology", "Creature Profile"],
@@ -229,6 +248,7 @@
     },
     {
         "id": 20,
+        "slug": "ai-in-genetic-testing",
         "title": "AI in Genetic Testing",
         "excerpt": "Artificial Intelligence has the potential to revolutionize genetic testing, though this brand-new arena of genetics and technology comes with both impressive accuracy improvements, and rising ethical concerns.",
         "category": ["Medicine", "Artificial Intelligence"],
@@ -241,6 +261,7 @@
     },
     {
         "id": 21,
+        "slug": "a-journey-into-deep-learning",
         "title": "A Journey Into Deep Learning",
         "excerpt": "This article ventures into the heart of deep learning, tracing how machines learn to see, think, and understand in ways that challenge what it means to be intelligent.",
         "category": ["Technology", "Artificial Intelligence"],
@@ -253,6 +274,7 @@
     },
     {
         "id": 22,
+        "slug": "the-cheesy-lie-weve-all-believed",
         "title": "The Cheesy Lie We’ve All Believed",
         "excerpt": "Do mice really like cheese or is it just one big cheesy mice-conception?",
         "category": ["Biology", "Chemistry", "Debunked"],
@@ -265,6 +287,7 @@
     },
     {
         "id": 23,
+        "slug": "does-hair-actually-grow-faster-when-you-cut-it",
         "title": "Does Hair Actually Grow Faster When You Cut It?",
         "excerpt": "Does hair actually grow faster after you cut it? This article challenges and debunks this myth with the science of hair growth.",
         "category": ["Biology", "Debunked"],
@@ -277,6 +300,7 @@
     },
     {
         "id": 24,
+        "slug": "the-miracle-behind-half-a-brain",
         "title": "The Miracle Behind Half a Brain",
         "excerpt": "What happens when a child loses half their brain—yet somehow gains their life back? This article explores the extraordinary science of neuroplasticity and the children who redefine what the human brain can do.",
         "category": ["Psychology", "What If"],
@@ -289,6 +313,7 @@
     },
     {
         "id": 25,
+        "slug": "the-respawning-jellyfish",
         "title": "The Respawning Jellyfish",
         "excerpt": "The ocean has many things lurking underneath. But there's one who has magically found the gold chest- the respawn button to life.",
         "category": ["Earth Science", "Biology"],
@@ -301,6 +326,7 @@
     },
     {
         "id": 26,
+        "slug": "the-axolotl-our-great-hope-for-human-regeneration",
         "title": "The Axolotl: Our Great Hope for Human Regeneration?",
         "excerpt": "At first glance, axolotls are basically something that one would expect in a cartoon and not in real-life forms.",
         "category": ["Biology"],
@@ -313,6 +339,7 @@
     },
     {
         "id": 27,
+        "slug": "how-does-drs-work-in-formula-1",
         "title": "How does DRS work in Formula 1?",
         "excerpt": "Ever wondered how a single button can make a Formula 1 car surge past 200 mph? Dive into the world of DRS, where tiny flaps, invisible airflow, and precise engineering turn physics into speed, strategy, and split-second victories on the track.",
         "category": ["Physics", "Engineering"],
@@ -325,6 +352,7 @@
     },
     {
         "id": 28,
+        "slug": "the-immortal-tiny-terror-hydras",
         "title": "The Immortal Tiny Terror: Why Hydras Are Basically Real-Life Supervillains",
         "excerpt": "Imagine if you could grow a brand-new head just because you got a papercut. Or better yet, imagine if you never actually got old—no wrinkles, no gray hair, and zero slowing down. While that sounds like some weird sci-fi movie plot, there’s a tiny creature living in ponds and lakes right now that actually does this every day.",
         "category": ["Biology"],
@@ -337,6 +365,7 @@
     },
     {
         "id": 29,
+        "slug": "the-goats-at-defying-gravity",
         "title": "The GOATS at Defying Gravity",
         "excerpt": "Mountain goats are truly fascinating creatures. Learn more as to how these fluffy animals defy all laws of physics!",
         "category": ["Biology"],
@@ -349,6 +378,7 @@
     },
     {
         "id": 30,
+        "slug": "natures-power-and-beauty-sinkholes",
         "title": "Nature’s Power and Beauty: Sinkholes",
         "excerpt": "Have you ever imagined the earth suddenly opening up and swallowing a car, a house, or even a whole soccer field?",
         "category": ["Earth Science"],
@@ -361,6 +391,7 @@
     },
     {
         "id": 31,
+        "slug": "psychosocial-development-how-experiences-shape-personality",
         "title": "Psychosocial Development: How Do Our Experiences Shape Our Personalities?",
         "excerpt": "Have you ever taken a BuzzFeed quiz to find out what Outer Banks character you are? Or how about what your favorite food says about your personality?",
         "category": ["Psychology"],
@@ -373,6 +404,7 @@
     },
     {
         "id": 32,
+        "slug": "science-in-the-media-helping-or-hurting",
         "title": "Science in the Media: Helping, Hurting, or Just Confusing Us?",
         "excerpt": "From AI kittens to COVID-19 updates, science in the media surrounds us every day. But, is it helping or harming?",
         "category": ["Medicine"],
@@ -385,6 +417,7 @@
     },
     {
         "id": 33,
+        "slug": "icebergs-how-a-frozen-landscape-sustains-our-environment",
         "title": "Icebergs: How a “Frozen Landscape” Sustains our Environment",
         "excerpt": "As global warming continues to take its effect on the Earth, a structure that seems so small, and insignificant bears the brunt of its damage. Icebergs, which provide so much to Earth's ecosystems are continuously melting, and it is important to know what they actually provide to Earth.",
         "category": ["Earth Science"],
@@ -397,6 +430,7 @@
     },
     {
         "id": 34,
+        "slug": "airlines-the-data-behind-a-single-flight",
         "title": "Airlines: How a Singular Flight Requires Data From All Kinds of Aspects",
         "excerpt": "In order for a singular flight to successfully make it to its destination, a ton of blood sweat and tears must be put into it. Data must be compiled from multiple different facets of importance, in order to make sure that the flight that you go on is truly seamless.",
         "category": ["Engineering", "Data Science", "Junior"],
@@ -409,6 +443,7 @@
     },
     {
         "id": 35,
+        "slug": "copy-paste-pets-the-science-of-animal-cloning",
         "title": "Copy-Paste Pets: The Science of Animal Cloning",
         "excerpt": "What if you could make an exact copy of your pet? Scientists already have…",
         "category": ["Biology", "Junior"],
@@ -421,6 +456,7 @@
     },
     {
         "id": 36,
+        "slug": "concerning-misuse-of-ai",
         "title": "Concerning Misuse of AI",
         "excerpt": "What if you could make an exact copy of your pet? Scientists already have…",
         "category": ["Artificial Intelligence"],
@@ -433,6 +469,7 @@
     },
     {
         "id": 37,
+        "slug": "cinematic-calculations",
         "title": "Cinematic Calculations",
         "excerpt": "From dusty westerns to mind-bending sci-fi, Hollywood has come a long way. But behind the spectacle of many modern blockbuster films is something audiences rarely notice: math.",
         "category": ["Math", "Physics"],

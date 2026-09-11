@@ -2,6 +2,8 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+import articles from "./data/articles.json";
+
 export default function AnalyticsTracker() {
   const location = useLocation();
 
@@ -17,18 +19,31 @@ export default function AnalyticsTracker() {
         page_title: document.title,
       });
 
-      // Optional: send a custom article_view event if the route is /article?id=...
-      const match = pagePath.match(/^\/article\?id=(\d+)$/);
+      // Optional: send a custom article_view event if the route is /article/<slug>
+      const match = location.pathname.match(
+        /^\/article\/([^/]+)\/?$/,
+      );
 
       if (match) {
-        const articleId = match[1];
+        const articleSlug = decodeURIComponent(match[1]);
+
+        const article = articles.find(
+          (currentArticle) => currentArticle.slug === articleSlug,
+        );
+
+        // Keep article_id reporting continuous with the old ?id= URLs.
+        const articleId = article
+          ? String(article.id)
+          : articleSlug;
+
         const articleElement = document.querySelector("h1");
         const articleTitle = articleElement
           ? articleElement.textContent
-          : `Article ${articleId}`;
+          : article?.title ?? `Article ${articleId}`;
 
         window.gtag("event", "article_view", {
           article_id: articleId,
+          article_slug: articleSlug,
           article_title: articleTitle,
           page_path: pagePath,
           page_location: window.location.href,

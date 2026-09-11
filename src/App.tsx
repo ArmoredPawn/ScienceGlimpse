@@ -45,6 +45,8 @@ const App = () => (
           <Route path="/submission" element={<Submission />} />
           <Route path="/game" element={<ScienceSummit />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/article/:slug" element={<Article />} />
+          {/* Legacy /article?id=N links redirect to the slug URL. */}
           <Route path="/article" element={<Article />} />
           <Route path="/about" element={<About />} />
           <Route path="/members" element={<Members />} />

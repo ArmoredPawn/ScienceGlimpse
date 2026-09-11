@@ -79,11 +79,7 @@ const HotSights = () => {
                     size="sm"
                     className="transition-colors duration-300 hover:text-black"
                   >
-                    <Link
-                      to={`/article?id=${encodeURIComponent(
-                        String(article.id)
-                      )}`}
-                    >
+                    <Link to={`/article/${article.slug}`}>
                       Read Now
                     </Link>
                   </Button>

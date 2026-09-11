@@ -7,6 +7,7 @@ import { Clock, User, ArrowRight } from 'lucide-react';
 
 interface Article {
   id: string | number;
+  slug: string;
   title: string;
   emoji: string;
   category: string | string[];
@@ -40,7 +41,9 @@ function getRandomArticles<T>(array: T[], count: number): T[] {
 }
 
 const ArticleFeed = () => {
-  const [randomArticles] = useState(() => getRandomArticles(articles, 3));
+  const [randomArticles] = useState<Article[]>(() =>
+    getRandomArticles(articles as unknown as Article[], 3)
+  );
   const navigate = useNavigate();
 
   return (
@@ -61,7 +64,7 @@ const ArticleFeed = () => {
           {randomArticles.map((article, idx) => (
             <Link
               key={article.id}
-              to={`/article?id=${article.id}`}
+              to={`/article/${article.slug}`}
               className={`group block ${glowStyles[idx]}`}
             >
               <div className="card-glow h-full p-6 rounded-xl relative overflow-hidden">

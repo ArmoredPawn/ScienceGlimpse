@@ -27,10 +27,13 @@ const staticUrls = staticPages.map(
   (page) => `${SITE_URL}${page}`
 );
 
-const articleUrls = articles.map(
-  (article) =>
-    `${SITE_URL}/article?id=${encodeURIComponent(String(article.id))}`
-);
+const articleUrls = articles.map((article) => {
+  if (!article.slug) {
+    throw new Error(`Article ${article.id} has no slug.`);
+  }
+
+  return `${SITE_URL}/article/${article.slug}`;
+});
 
 const urls = [...staticUrls, ...articleUrls];
 

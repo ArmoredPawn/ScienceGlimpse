@@ -7,6 +7,7 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 
 type Article = {
   id: number | string;
+  slug: string;
   title: string;
   excerpt: string;
   category: string | string[];
@@ -162,10 +163,8 @@ const Articles: React.FC = () => {
       return accumulator;
     }, []);
 
-  const goToArticle = (id: string | number) => {
-    navigate(
-      `/article?id=${encodeURIComponent(String(id))}`
-    );
+  const goToArticle = (slug: string) => {
+    navigate(`/article/${slug}`);
   };
 
   const goToRandomArticle = () => {
@@ -177,7 +176,7 @@ const Articles: React.FC = () => {
     if (pool.length === 0) return;
 
     const index = Math.floor(Math.random() * pool.length);
-    goToArticle(pool[index].id);
+    goToArticle(pool[index].slug);
   };
 
   const toggleCategory = (key: string) => {
@@ -356,9 +355,7 @@ const Articles: React.FC = () => {
                   return (
                     <Link
                       key={article.id}
-                      to={`/article?id=${encodeURIComponent(
-                        String(article.id)
-                      )}`}
+                      to={`/article/${article.slug}`}
                       className="block"
                       aria-label={`Read ${article.title}`}
                     >

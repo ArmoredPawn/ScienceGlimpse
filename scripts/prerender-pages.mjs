@@ -60,6 +60,75 @@ const appendToHead = (html, lines) =>
     '</head>',
   );
 
+/*
+ * The article text, written straight into #root.
+ *
+ * Meta tags alone told a crawler what a page was about but gave it nothing
+ * to read — #root shipped empty, so the words only existed after Google's
+ * second, JS-rendering pass. Emitting the text here puts it in the first
+ * response instead.
+ *
+ * main.tsx mounts with createRoot(), not hydrateRoot(), and React clears a
+ * container on initial render — so this markup is replaced wholesale the
+ * moment the bundle runs. It is a crawler payload and a first paint, never
+ * something React reconciles against, which is why no hydration mismatch
+ * is possible here. The inline styles keep that first paint readable for
+ * anyone on a slow connection.
+ */
+const renderArticleBody = (article) => {
+  const paragraphs = String(article.content)
+    .split(/\r?\n\s*\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map(
+      (paragraph) =>
+        `<p>${escapeAttribute(paragraph).replace(/\r?\n/g, '<br />')}</p>`,
+    )
+    .join('\n');
+
+  const references =
+    Array.isArray(article.references) && article.references.length > 0
+      ? `<h2>References</h2><ol>${article.references
+          .map((reference) => {
+            const label = escapeAttribute(reference.title ?? '');
+
+            const link = reference.url
+              ? `<a href="${escapeAttribute(reference.url)}" rel="noopener noreferrer">${label}</a>`
+              : label;
+
+            return `<li>${
+              reference.author ? `${escapeAttribute(reference.author)}, ` : ''
+            }${link}</li>`;
+          })
+          .join('')}</ol>`
+      : '';
+
+  const image = article.thumbnail
+    ? `<img src="${escapeAttribute(article.thumbnail)}" alt="${escapeAttribute(
+        article.title,
+      )}" style="width:100%;border-radius:.75rem;margin:1.5rem 0" />`
+    : '';
+
+  return [
+    '<div id="root">',
+    '<main style="max-width:48rem;margin:0 auto;padding:5rem 1rem 2rem;',
+    'font-family:system-ui,-apple-system,sans-serif;line-height:1.7">',
+    '<article>',
+    `<h1 style="font-size:2.25rem;font-weight:700;margin-bottom:.5rem">${escapeAttribute(
+      article.title,
+    )}</h1>`,
+    `<p style="opacity:.7">By ${escapeAttribute(
+      article.author ?? 'ScienceGlimpse Contributor',
+    )}${article.date ? ` &bull; ${escapeAttribute(article.date)}` : ''}</p>`,
+    image,
+    paragraphs,
+    references,
+    '</article>',
+    '</main>',
+    '</div>',
+  ].join('');
+};
+
 const truncate = (text) => {
   const clean = String(text).replace(/\s+/g, ' ').trim();
 
@@ -130,7 +199,7 @@ const buildArticlePage = (article) => {
       : {}),
   };
 
-  return appendToHead(html, [
+  html = appendToHead(html, [
     `<link rel="canonical" href="${escapeAttribute(articleUrl)}" />`,
     `<meta property="og:url" content="${escapeAttribute(articleUrl)}" />`,
     `<meta name="twitter:title" content="${escapeAttribute(article.title)}" />`,
@@ -141,6 +210,13 @@ const buildArticlePage = (article) => {
       structuredData,
     ).replace(/</g, '\\u003c')}</script>`,
   ]);
+
+  return replaceOrFail(
+    html,
+    /<div id="root">\s*<\/div>/i,
+    renderArticleBody(article),
+    'the empty <div id="root">',
+  );
 };
 
 const buildStaticPage = (page) => {

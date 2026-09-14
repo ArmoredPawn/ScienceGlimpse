@@ -25,12 +25,15 @@ const Navigation: React.FC = () => {
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Full width rather than a centred max-width box, so the logo and the
+          account controls sit against the edges of the screen instead of
+          floating inwards on wide displays. */}
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
-          {/* Logo */}
+          {/* Logo — flush left */}
           <Link
             to="/"
-            className="absolute -left-4 z-30 flex items-center space-x-3"
+            className="z-30 flex items-center space-x-3"
           >
             <ScienceEyeLogo className="h-10 w-10" />
 
@@ -40,7 +43,7 @@ const Navigation: React.FC = () => {
           </Link>
 
           {/* Desktop navigation */}
-          <div className="pointer-events-auto absolute left-0 right-0 hidden justify-center space-x-7 md:flex">
+          <div className="pointer-events-auto absolute left-0 right-0 hidden justify-center space-x-6 min-[1200px]:flex">
             {navItems.map((item) => (
               <Link
                 key={item.label}
@@ -52,8 +55,8 @@ const Navigation: React.FC = () => {
             ))}
           </div>
 
-          {/* Desktop right-side controls */}
-          <div className="absolute right-4 z-30 hidden items-center gap-2 md:flex">
+          {/* Desktop right-side controls — flush right */}
+          <div className="z-30 hidden items-center gap-2 min-[1200px]:flex">
             <ThemeToggle />
 
             {!loading && (
@@ -68,7 +71,7 @@ const Navigation: React.FC = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="ml-auto md:hidden">
+          <div className="min-[1200px]:hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -87,7 +90,7 @@ const Navigation: React.FC = () => {
 
         {/* Mobile navigation menu */}
         {isMenuOpen && (
-          <div className="mb-4 mt-2 rounded-lg border border-border bg-card/95 p-4 backdrop-blur-sm md:hidden">
+          <div className="mb-4 mt-2 rounded-lg border border-border bg-card/95 p-4 backdrop-blur-sm min-[1200px]:hidden">
             <div className="flex flex-col space-y-3">
               {navItems.map((item) => (
                 <Link

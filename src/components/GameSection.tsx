@@ -71,7 +71,7 @@ const GameSection: React.FC = () => {
             earned by reading articles on the site.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-12">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 mt-12">
             <Button
               variant="outline"
               size="lg"
@@ -88,6 +88,15 @@ const GameSection: React.FC = () => {
               onClick={() => navigate('/leaderboard')}
             >
               Leaderboard
+            </Button>
+
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-lg py-4 transition-all duration-300"
+              onClick={() => navigate('/tokens')}
+            >
+              How Tokens Work
             </Button>
           </div>
         </div>

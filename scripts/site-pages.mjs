@@ -69,6 +69,12 @@ export const staticPages = [
       'Play Science Summit, the ScienceGlimpse climbing game. Spend tokens earned by reading articles and climb as high as you can.',
   },
   {
+    path: '/tokens',
+    title: 'Tokens',
+    description:
+      'How ScienceGlimpse tokens work: earn them by reading articles, and spend them climbing in Science Summit.',
+  },
+  {
     path: '/leaderboard',
     title: 'Science Summit Leaderboard',
     description:

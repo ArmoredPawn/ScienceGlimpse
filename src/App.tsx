@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Article from './pages/Article';
 import Classes from "./pages/Classes";
 import Leaderboard from "./pages/Leaderboard";
+import Tokens from "./pages/Tokens";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Mod from "./pages/Mod";
@@ -50,6 +51,7 @@ const App = () => (
             element={<Navigate to="/science-summit" replace />}
           />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/tokens" element={<Tokens />} />
           <Route path="/article/:slug" element={<Article />} />
           {/* Legacy /article?id=N links redirect to the slug URL. */}
           <Route path="/article" element={<Article />} />

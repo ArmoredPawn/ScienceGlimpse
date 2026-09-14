@@ -18,6 +18,7 @@ const Navigation: React.FC = () => {
     { label: "About", to: "/about" },
     { label: "Members", to: "/members" },
     { label: "Classes", to: "/classes" },
+    { label: "Tokens", to: "/tokens" },
     { label: "Publish", to: "/submission" },
     { label: "Contact", to: "/contact" },
   ];

@@ -92,15 +92,23 @@ const Tokens = () => {
 
                 <p className="mt-2 text-sm text-muted-foreground">
                   Writing for ScienceGlimpse will earn you{' '}
-                  {ARTICLE_SUBMISSION_REWARD} tokens per article you submit —
-                  five times what reading one pays, because writing one is a
+                  {ARTICLE_SUBMISSION_REWARD} tokens for every article{' '}
+                  <b className="text-foreground">
+                    accepted for publication
+                  </b>{' '}
+                  — five times what reading one pays, because writing one is a
                   lot more work.
                 </p>
 
                 <p className="mt-2 text-sm text-muted-foreground">
-                  This reward is not switched on yet. You can still submit
-                  articles today, and we will announce it here once tokens
-                  start being awarded for them.
+                  Tokens are awarded when an article is accepted, not for
+                  submitting one. Put your ScienceGlimpse username on the
+                  submission form so they reach the right account.
+                </p>
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This reward is not switched on yet — we will announce it
+                  here once it is.
                 </p>
               </div>
             </div>

@@ -273,7 +273,7 @@ const Profile = () => {
             type="button"
             variant="neuron"
             className="mt-3 w-full"
-            onClick={() => navigate("/game")}
+            onClick={() => navigate("/science-summit")}
           >
             Spend Tokens — Play Science Summit
           </Button>

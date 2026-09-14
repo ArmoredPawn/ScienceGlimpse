@@ -94,7 +94,7 @@ const Leaderboard = () => {
               <div className="flex items-center justify-center gap-2 mb-4">
 
                 <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-neuron to-cosmic bg-clip-text text-transparent py-[6px]">
-                  Science Summit Leaderboard
+                  ScienceGlimpse Summit Leaderboard
                 </h1>
               </div>
 
@@ -152,7 +152,7 @@ const Leaderboard = () => {
 
             <div className="text-center mt-10">
               <Button asChild variant="neuron" size="lg">
-                <Link to="/game">Play Science Summit</Link>
+                <Link to="/science-summit">Play Science Summit</Link>
               </Button>
             </div>
           </div>

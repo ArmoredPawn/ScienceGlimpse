@@ -63,7 +63,7 @@ export const staticPages = [
       'Get in touch with the ScienceGlimpse team. We typically respond within 24 to 48 hours.',
   },
   {
-    path: '/game',
+    path: '/science-summit',
     title: 'Science Summit',
     description:
       'Play Science Summit, the ScienceGlimpse climbing game. Spend tokens earned by reading articles and climb as high as you can.',

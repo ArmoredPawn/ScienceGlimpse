@@ -20,7 +20,7 @@ const GameSection: React.FC = () => {
 
   const handlePlayClick = () => {
     if (user) {
-      navigate('/game');
+      navigate('/science-summit');
       return;
     }
 

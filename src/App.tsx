@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Articles from "./pages/Articles";
 import Submission from "./pages/Submission";
@@ -43,7 +43,12 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/articles" element={<Articles />} />
           <Route path="/submission" element={<Submission />} />
-          <Route path="/game" element={<ScienceSummit />} />
+          <Route path="/science-summit" element={<ScienceSummit />} />
+          {/* The game lived at /game until it was renamed; keep old links alive. */}
+          <Route
+            path="/game"
+            element={<Navigate to="/science-summit" replace />}
+          />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/article/:slug" element={<Article />} />
           {/* Legacy /article?id=N links redirect to the slug URL. */}

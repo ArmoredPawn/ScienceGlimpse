@@ -75,7 +75,7 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="glow-action-btn-green text-black dark:text-white text-lg py-4 transition-all duration-300"
+              className="glow-action-btn-green flex-1 whitespace-nowrap px-4 text-black dark:text-white text-lg py-4 transition-all duration-300"
               onClick={handlePlayClick}
             >
               Play Now
@@ -84,7 +84,7 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="text-lg py-4 transition-all duration-300"
+              className="flex-1 whitespace-nowrap px-4 text-lg py-4 transition-all duration-300"
               onClick={() => navigate('/leaderboard')}
             >
               Leaderboard
@@ -93,7 +93,7 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="text-lg py-4 transition-all duration-300"
+              className="flex-1 whitespace-nowrap px-4 text-lg py-4 transition-all duration-300"
               onClick={() => navigate('/tokens')}
             >
               How Tokens Work

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { FirebaseError } from "firebase/app";
 import { signInWithPopup } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { Coins } from "lucide-react";
 
 import { auth, googleProvider } from "../lib/firebase";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, SIGNUP_BONUS_TOKENS } from "../context/AuthContext";
 
 const Login = () => {
   const { user, loading, logout } = useAuth();
@@ -111,6 +112,18 @@ const Login = () => {
         <p className="mt-3 text-muted-foreground">
           Sign in to access your ScienceGlimpse account.
         </p>
+
+        <div className="mt-6 flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-4 text-left">
+          <Coins className="h-6 w-6 shrink-0 text-primary" />
+
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              Create an account and get {SIGNUP_BONUS_TOKENS} tokens
+            </span>{" "}
+            to start climbing in Science Summit — then earn more by
+            reading articles.
+          </p>
+        </div>
 
         <button
           type="button"

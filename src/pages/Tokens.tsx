@@ -1,11 +1,18 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Coins, PenLine, Mountain } from 'lucide-react';
+import {
+  BookOpen,
+  Coins,
+  PenLine,
+  Mountain,
+  UserPlus,
+} from 'lucide-react';
 
 import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { JUMPS_PER_TOKEN, TOKENS_PER_CHARGE } from '@/lib/tokens';
+import { SIGNUP_BONUS_TOKENS } from '@/context/AuthContext';
 
 const ARTICLE_READ_REWARD = 10;
 const ARTICLE_SUBMISSION_REWARD = 50;
@@ -44,7 +51,32 @@ const Tokens = () => {
               How to earn tokens
             </h2>
 
-            <div className="grid gap-4 sm:grid-cols-2 mb-10">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+              <div className="bg-card/60 backdrop-blur-sm border border-border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <UserPlus className="h-6 w-6 text-primary" />
+
+                  <span className="text-2xl font-bold text-primary">
+                    +{SIGNUP_BONUS_TOKENS}
+                  </span>
+                </div>
+
+                <p className="font-semibold text-foreground">
+                  Create an account
+                </p>
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Every new ScienceGlimpse account starts with{' '}
+                  {SIGNUP_BONUS_TOKENS} tokens, so you can go straight to
+                  Science Summit before you have read anything.
+                </p>
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This is a one-off welcome balance — it lands once, when
+                  your account is created.
+                </p>
+              </div>
+
               <div className="bg-card/60 backdrop-blur-sm border border-border rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <BookOpen className="h-6 w-6 text-primary" />

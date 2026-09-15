@@ -14,6 +14,7 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../lib/firebase";
@@ -33,6 +34,20 @@ interface AuthProviderProps {
 }
 
 class UsernameTakenError extends Error {}
+
+/*
+ * New accounts start with a welcome balance so a first visit to Science
+ * Summit is playable before you have read anything.
+ *
+ * It is written as a single tokenLedger entry under a fixed document ID.
+ * The ID is what makes it safe: firestore.rules allows create and never
+ * update or delete, so "signup_bonus" can only ever exist once per
+ * account and is worth exactly SIGNUP_BONUS_TOKENS. Balances are summed
+ * from tokenLedger already, so nothing else needs to know about it.
+ */
+export const SIGNUP_BONUS_TOKENS = 30;
+
+const SIGNUP_BONUS_DOCUMENT_ID = "signup_bonus";
 
 function createDefaultUsername(user: User): string {
   const source =
@@ -74,8 +89,22 @@ async function ensureUserProfile(user: User): Promise<void> {
       username,
     );
 
+    const bonusReference = doc(
+      db,
+      "users",
+      user.uid,
+      "tokenLedger",
+      SIGNUP_BONUS_DOCUMENT_ID,
+    );
+
+    let profileWasCreated = false;
+
     try {
       await runTransaction(db, async (transaction) => {
+        // Reset per attempt: a transaction callback can run more than
+        // once, and only the attempt that commits should count.
+        profileWasCreated = false;
+
         const profileSnapshot =
           await transaction.get(profileReference);
 
@@ -104,7 +133,34 @@ async function ensureUserProfile(user: User): Promise<void> {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+
+        profileWasCreated = true;
       });
+
+      /*
+       * Deliberately outside the transaction above. Bundling the two
+       * would mean a refused bonus — rules not yet deployed, say — takes
+       * profile creation down with it, leaving a signed-in user with no
+       * profile and no username. A missing welcome balance a moderator
+       * can grant by hand is the far cheaper failure.
+       *
+       * Guarded on profileWasCreated so this only ever fires for a
+       * genuinely new account, never for an existing one signing back in.
+       */
+      if (profileWasCreated) {
+        try {
+          await setDoc(bonusReference, {
+            amount: SIGNUP_BONUS_TOKENS,
+            type: "signup_bonus",
+            createdAt: serverTimestamp(),
+          });
+        } catch (bonusError) {
+          console.error(
+            "Could not grant the signup bonus:",
+            bonusError,
+          );
+        }
+      }
 
       return;
     } catch (error) {

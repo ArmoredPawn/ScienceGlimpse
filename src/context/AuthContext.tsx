@@ -12,6 +12,7 @@ import {
 } from "firebase/auth";
 import {
   doc,
+  getDoc,
   runTransaction,
   serverTimestamp,
   setDoc,
@@ -70,6 +71,49 @@ function createDefaultUsername(user: User): string {
   return `user_${user.uid.slice(0, 8).toLowerCase()}`;
 }
 
+/*
+ * Grants the welcome balance, and is safe to call on every sign-in.
+ *
+ * This deliberately does not check whether the account was created just
+ * now. Tying it to that moment gave it exactly one chance to ever run:
+ * anything that went wrong then — rules not yet published, a dropped
+ * connection — left the account permanently short, with no path to
+ * recovery. Checking for the document instead means a sign-in always
+ * repairs a missing bonus.
+ *
+ * Paying twice is impossible regardless of how often this runs, because
+ * firestore.rules allows create on this fixed document ID and refuses
+ * update and delete. The read below is what keeps the normal case quiet
+ * rather than firing a write the rules would reject.
+ */
+async function ensureSignupBonus(user: User): Promise<void> {
+  const bonusReference = doc(
+    db,
+    "users",
+    user.uid,
+    "tokenLedger",
+    SIGNUP_BONUS_DOCUMENT_ID,
+  );
+
+  try {
+    const bonusSnapshot = await getDoc(bonusReference);
+
+    if (bonusSnapshot.exists()) {
+      return;
+    }
+
+    await setDoc(bonusReference, {
+      amount: SIGNUP_BONUS_TOKENS,
+      type: "signup_bonus",
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    // Never allowed to break signing in — a missing bonus is recoverable
+    // on the next sign-in, or by hand from the Mod dashboard.
+    console.error("Could not grant the signup bonus:", error);
+  }
+}
+
 async function ensureUserProfile(user: User): Promise<void> {
   const profileReference = doc(db, "users", user.uid);
   const baseUsername = createDefaultUsername(user);
@@ -89,22 +133,8 @@ async function ensureUserProfile(user: User): Promise<void> {
       username,
     );
 
-    const bonusReference = doc(
-      db,
-      "users",
-      user.uid,
-      "tokenLedger",
-      SIGNUP_BONUS_DOCUMENT_ID,
-    );
-
-    let profileWasCreated = false;
-
     try {
       await runTransaction(db, async (transaction) => {
-        // Reset per attempt: a transaction callback can run more than
-        // once, and only the attempt that commits should count.
-        profileWasCreated = false;
-
         const profileSnapshot =
           await transaction.get(profileReference);
 
@@ -133,34 +163,7 @@ async function ensureUserProfile(user: User): Promise<void> {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-
-        profileWasCreated = true;
       });
-
-      /*
-       * Deliberately outside the transaction above. Bundling the two
-       * would mean a refused bonus — rules not yet deployed, say — takes
-       * profile creation down with it, leaving a signed-in user with no
-       * profile and no username. A missing welcome balance a moderator
-       * can grant by hand is the far cheaper failure.
-       *
-       * Guarded on profileWasCreated so this only ever fires for a
-       * genuinely new account, never for an existing one signing back in.
-       */
-      if (profileWasCreated) {
-        try {
-          await setDoc(bonusReference, {
-            amount: SIGNUP_BONUS_TOKENS,
-            type: "signup_bonus",
-            createdAt: serverTimestamp(),
-          });
-        } catch (bonusError) {
-          console.error(
-            "Could not grant the signup bonus:",
-            bonusError,
-          );
-        }
-      }
 
       return;
     } catch (error) {
@@ -193,6 +196,7 @@ export function AuthProvider({
           try {
             if (currentUser) {
               await ensureUserProfile(currentUser);
+              await ensureSignupBonus(currentUser);
             }
           } catch (error) {
             console.error(

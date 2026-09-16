@@ -1,0 +1,384 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isModerator() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/moderators/$(request.auth.uid)
+        );
+    }
+
+    function validUsername(username) {
+      return username is string
+        && username.size() >= 3
+        && username.size() <= 20
+        && username.matches('^[a-z0-9_]+$');
+    }
+
+    /*
+     * email is optional and only ever the account's own Auth email,
+     * written by AuthContext on sign-in. It exists so the Mod dashboard
+     * can show and search by it: emails live in Firebase Authentication,
+     * which no client can read for another user, so without a copy here
+     * a moderator has no way to find somebody by email.
+     *
+     * users/{uid} is readable only by its owner or a moderator (below),
+     * so this does not expose addresses to anyone else.
+     */
+    function validProfile(profile) {
+      return profile.keys().hasOnly([
+          'username',
+          'photoURL',
+          'email',
+          'createdAt',
+          'updatedAt'
+        ])
+        && validUsername(profile.username)
+        && profile.photoURL is string
+        && profile.photoURL.size() <= 2000
+        && (
+          !profile.keys().hasAny(['email'])
+          || (
+            profile.email is string
+            && profile.email.size() <= 320
+          )
+        );
+    }
+
+    function validProgress(progress, articleId) {
+      return progress.keys().hasAll([
+          'articleId',
+          'activeSeconds',
+          'rewarded',
+          'lastHeartbeatAt',
+          'rewardedAt'
+        ])
+        && progress.keys().hasOnly([
+          'articleId',
+          'activeSeconds',
+          'rewarded',
+          'lastHeartbeatAt',
+          'rewardedAt'
+        ])
+        && progress.articleId is string
+        && progress.articleId == articleId
+        && progress.activeSeconds is int
+        && progress.activeSeconds >= 15
+        && progress.activeSeconds <= 240
+        && progress.rewarded is bool
+        && progress.lastHeartbeatAt is timestamp
+        && (
+          progress.rewardedAt == null
+          || progress.rewardedAt is timestamp
+        );
+    }
+
+    match /moderators/{moderatorId} {
+      // A user may only verify their own moderator status.
+      allow get: if signedIn()
+        && request.auth.uid == moderatorId;
+
+      allow list: if false;
+
+      // Moderator membership can only be changed manually
+      // through the Firebase console.
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      // Only the owner or a moderator may read a profile — the app never
+      // needs to read another user's profile otherwise (Profile.tsx reads
+      // its own doc; Mod.tsx lists everyone but is moderator-only). This
+      // used to be `allow read: if true`, which let anyone, including
+      // signed-out visitors, list and scrape every user's username and
+      // profile photo.
+      allow get, list: if isOwner(userId) || isModerator();
+
+      allow create: if isOwner(userId)
+        && validProfile(request.resource.data);
+
+      allow update: if isOwner(userId)
+        && validProfile(request.resource.data);
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /usernames/{username} {
+      // Availability checks only ever `get()` one exact username, never
+      // list the collection, so `list` can be closed without touching
+      // that flow — it previously let anyone dump the full
+      // username -> uid directory.
+      allow get: if true;
+      allow list: if false;
+
+      allow create: if signedIn()
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid;
+
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // Public Science Summit leaderboard. A denormalized copy of each
+    // player's username + best altitude (src/hooks/useBestAltitude.ts).
+    // users/{uid} is private (see above), so this is the only place a
+    // username is ever exposed publicly — deliberately minimal (no
+    // photo, no uid in the document body) since anyone, signed in or
+    // not, can read it.
+    //
+    // Players publish their own entry. Moderators can also publish one
+    // for anybody (the Mod dashboard's "Sync leaderboard" button, which
+    // backfills records set before this collection existed). The
+    // getAfter() check applies to BOTH: an entry must match that
+    // player's real gameStats altitude, so not even a moderator can
+    // invent a score — they can only publish a genuine one.
+    match /leaderboard/{userId} {
+      allow get, list: if true;
+
+      allow create, update: if (isOwner(userId) || isModerator())
+        && request.resource.data.keys().hasOnly([
+          'username',
+          'bestAltitude',
+          'updatedAt'
+        ])
+        && validUsername(request.resource.data.username)
+        && request.resource.data.bestAltitude is int
+        && request.resource.data.bestAltitude >= 0
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.bestAltitude == getAfter(
+          /databases/$(database)/documents/users/$(userId)/gameStats/scienceSummit
+        ).data.bestAltitude;
+
+      allow delete: if false;
+    }
+
+    // In-progress Science Summit run, so a player can pause, close the
+    // tab, and pick the same climb back up later instead of restarting
+    // from the ground (src/games/.../ScienceSummit.tsx). Cleared by the
+    // client the moment a run actually ends (lava or falling out of
+    // tokens), so a saved doc existing at all means "still climbing."
+    // Private — nobody but the player themselves needs this.
+    match /users/{userId}/gameRuns/{runId} {
+      allow get, list: if isOwner(userId);
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'altitude',
+          'checkpointX',
+          'checkpointY',
+          'maxHeight',
+          'updatedAt'
+        ])
+        && request.resource.data.altitude is int
+        && request.resource.data.altitude >= 0
+        && request.resource.data.checkpointX is number
+        && request.resource.data.checkpointY is number
+        && request.resource.data.maxHeight is int
+        && request.resource.data.maxHeight >= 0
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/readingProgress/{articleId} {
+      allow get, list: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && validProgress(request.resource.data, articleId)
+        && request.resource.data.activeSeconds == 15
+        && request.resource.data.rewarded == false
+        && request.resource.data.rewardedAt == null
+        && request.resource.data.lastHeartbeatAt == request.time;
+
+      allow update: if isOwner(userId)
+        && validProgress(request.resource.data, articleId)
+        && resource.data.rewarded == false
+        && request.resource.data.articleId
+          == resource.data.articleId
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'activeSeconds',
+            'rewarded',
+            'lastHeartbeatAt',
+            'rewardedAt'
+          ])
+        && request.resource.data.activeSeconds
+          == resource.data.activeSeconds + 15
+        && request.resource.data.lastHeartbeatAt
+          == request.time
+        && request.time
+          >= resource.data.lastHeartbeatAt
+            + duration.value(15, 's')
+        && (
+          (
+            request.resource.data.activeSeconds < 240
+            && request.resource.data.rewarded == false
+            && request.resource.data.rewardedAt == null
+          )
+          ||
+          (
+            request.resource.data.activeSeconds == 240
+            && request.resource.data.rewarded == true
+            && request.resource.data.rewardedAt
+              == request.time
+            && getAfter(
+              /databases/$(database)/documents/users/$(userId)/tokenLedger/$(articleId)
+            ).data.amount == 10
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    match /users/{userId}/tokenLedger/{articleId} {
+      allow get, list: if isOwner(userId)
+        || isModerator();
+
+      // One-off welcome balance for a new account, written by
+      // AuthContext the first time a profile is created. The fixed
+      // document ID is the safeguard: create is allowed but update and
+      // delete never are (below), so 'signup_bonus' can exist at most
+      // once per account and is worth exactly 30.
+      //
+      // Keep the 30 here in step with SIGNUP_BONUS_TOKENS in
+      // src/context/AuthContext.tsx.
+      allow create: if isOwner(userId)
+        && articleId == 'signup_bonus'
+        && request.resource.data.keys().hasOnly([
+          'amount',
+          'type',
+          'createdAt'
+        ])
+        && request.resource.data.amount == 30
+        && request.resource.data.type == 'signup_bonus'
+        && request.resource.data.createdAt == request.time;
+
+      // Article-reading reward. A second allow for the same operation is
+      // OR'd with the one above, so this is unchanged in behaviour.
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll([
+          'articleId',
+          'amount',
+          'type',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'articleId',
+          'amount',
+          'type',
+          'createdAt'
+        ])
+        && request.resource.data.articleId == articleId
+        && request.resource.data.amount == 10
+        && request.resource.data.type == 'article_read'
+        && request.resource.data.createdAt == request.time
+        && getAfter(
+          /databases/$(database)/documents/users/$(userId)/readingProgress/$(articleId)
+        ).data.activeSeconds == 240
+        && getAfter(
+          /databases/$(database)/documents/users/$(userId)/readingProgress/$(articleId)
+        ).data.rewarded == true
+        && getAfter(
+          /databases/$(database)/documents/users/$(userId)/readingProgress/$(articleId)
+        ).data.rewardedAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    match /users/{userId}/tokenAdjustments/{adjustmentId} {
+      allow get, list: if isOwner(userId)
+        || isModerator();
+
+      allow create: if isModerator()
+        && request.resource.data.keys().hasAll([
+          'amount',
+          'reason',
+          'moderatorUid',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'amount',
+          'reason',
+          'moderatorUid',
+          'createdAt'
+        ])
+        && request.resource.data.amount is int
+        && request.resource.data.amount != 0
+        && request.resource.data.amount >= -1000
+        && request.resource.data.amount <= 1000
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() >= 3
+        && request.resource.data.reason.size() <= 200
+        && request.resource.data.moderatorUid
+          == request.auth.uid
+        && request.resource.data.createdAt
+          == request.time;
+
+      // Preserve a permanent audit history.
+      allow update, delete: if false;
+    }
+
+    // Science Summit game energy ledger. Entries are immutable, exactly
+    // like tokenLedger above, and count toward a player's real token
+    // balance (see src/lib/tokens.ts, which sums tokenLedger +
+    // tokenAdjustments + gameLedger).
+    //
+    // Jumping is the only thing that spends energy in this game (there
+    // is no in-game way to earn tokens back), so every entry is a fixed
+    // -1 charge for every 10 jumps. A negative amount only ever costs
+    // the player their own tokens, so this doesn't need the getAfter()
+    // cross-document validation tokenLedger uses above — there's no
+    // positive-amount case here to guard against.
+    match /users/{userId}/gameLedger/{entryId} {
+      allow get, list: if isOwner(userId)
+        || isModerator();
+
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'amount',
+          'type',
+          'createdAt'
+        ])
+        && request.resource.data.amount == -1
+        && request.resource.data.type == 'game_jump_batch'
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    // Science Summit best-altitude record, scoped to the account
+    // (src/hooks/useBestAltitude.ts). Purely a vanity stat with no
+    // currency behind it, so this only needs light shape validation —
+    // unlike the token collections above, there's nothing to protect
+    // against here beyond malformed data.
+    match /users/{userId}/gameStats/{statId} {
+      allow get, list: if isOwner(userId)
+        || isModerator();
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'bestAltitude',
+          'updatedAt'
+        ])
+        && request.resource.data.bestAltitude is int
+        && request.resource.data.bestAltitude >= 0
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+  }
+}

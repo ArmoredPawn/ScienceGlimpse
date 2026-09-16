@@ -68,7 +68,7 @@ const Tokens = () => {
                 <p className="mt-2 text-sm text-muted-foreground">
                   Every new ScienceGlimpse account starts with{' '}
                   {SIGNUP_BONUS_TOKENS} tokens, so you can go straight to
-                  Science Summit before you have read anything.
+                  ScienceGlimpse Summit before you have read anything.
                 </p>
 
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -112,10 +112,6 @@ const Tokens = () => {
                       +{ARTICLE_SUBMISSION_REWARD}
                     </span>
                   </div>
-
-                  <span className="rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-                    Coming soon
-                  </span>
                 </div>
 
                 <p className="font-semibold text-foreground">
@@ -136,11 +132,6 @@ const Tokens = () => {
                   Tokens are awarded when an article is accepted, not for
                   submitting one. Put your ScienceGlimpse username on the
                   submission form so they reach the right account.
-                </p>
-
-                <p className="mt-2 text-sm text-muted-foreground">
-                  This reward is not switched on yet — we will announce it
-                  here once it is.
                 </p>
               </div>
             </div>

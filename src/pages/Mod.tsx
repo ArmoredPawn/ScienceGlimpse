@@ -19,6 +19,7 @@ import {
   Mountain,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   Trophy,
   UserRound,
 } from "lucide-react";
@@ -60,6 +61,7 @@ const Mod = () => {
   const [reason, setReason] = useState("");
 
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [deletingUid, setDeletingUid] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
@@ -340,6 +342,103 @@ const Mod = () => {
       );
     } finally {
       setSyncing(false);
+    }
+  };
+
+  /*
+   * Everything Firestore holds for one account.
+   *
+   * Deleting a user in the Firebase Authentication console removes only
+   * the login identity — every document here survives it, which is why
+   * accounts deleted there still appeared in this dashboard. Firestore
+   * does not cascade either: removing users/{uid} would strand its
+   * subcollections, so each one is cleared explicitly.
+   */
+  const USER_SUBCOLLECTIONS = [
+    "tokenLedger",
+    "tokenAdjustments",
+    "gameLedger",
+    "gameStats",
+    "gameRuns",
+    "readingProgress",
+  ];
+
+  const handleDeleteUser = async (target: UserSummary) => {
+    const confirmed = window.confirm(
+      `Permanently delete @${target.username} and all of their ` +
+        `ScienceGlimpse data? This removes their tokens, reading ` +
+        `history and leaderboard entry, and cannot be undone.\n\n` +
+        `This does not delete their Google login — remove that in the ` +
+        `Firebase Authentication console as well.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingUid(target.uid);
+    setMessage("");
+    setErrorMessage("");
+
+    try {
+      const batch = writeBatch(db);
+
+      for (const subcollection of USER_SUBCOLLECTIONS) {
+        const snapshot = await getDocs(
+          collection(db, "users", target.uid, subcollection),
+        );
+
+        snapshot.docs.forEach((entry) => {
+          batch.delete(entry.ref);
+        });
+      }
+
+      batch.delete(doc(db, "leaderboard", target.uid));
+
+      /*
+       * usernames/{name} maps a name to a uid. Read it first and only
+       * delete when it still points at this account, so a name already
+       * reclaimed by somebody else is not taken from them.
+       */
+      if (target.publishableUsername) {
+        const usernameReference = doc(
+          db,
+          "usernames",
+          target.publishableUsername,
+        );
+
+        const usernameSnapshot = await getDoc(usernameReference);
+
+        if (
+          usernameSnapshot.exists() &&
+          usernameSnapshot.data().uid === target.uid
+        ) {
+          batch.delete(usernameReference);
+        }
+      }
+
+      batch.delete(doc(db, "users", target.uid));
+
+      await batch.commit();
+
+      if (selectedUid === target.uid) {
+        setSelectedUid("");
+      }
+
+      setMessage(
+        `Deleted @${target.username}. Remember to remove their login ` +
+          `in the Firebase Authentication console too.`,
+      );
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Could not delete the user:", error);
+
+      setErrorMessage(
+        "Could not delete this user. Check that you are still a moderator and that the rules allow it.",
+      );
+    } finally {
+      setDeletingUid("");
     }
   };
 
@@ -747,20 +846,42 @@ const Mod = () => {
                     </td>
 
                     <td className="px-6 py-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUid(currentUser.uid);
-                          window.scrollTo({
-                            top: 0,
-                            behavior: "smooth",
-                          });
-                        }}
-                      >
-                        Adjust
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUid(currentUser.uid);
+                            window.scrollTo({
+                              top: 0,
+                              behavior: "smooth",
+                            });
+                          }}
+                        >
+                          Adjust
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={
+                            deletingUid === currentUser.uid
+                          }
+                          onClick={() =>
+                            handleDeleteUser(currentUser)
+                          }
+                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          aria-label={`Delete @${currentUser.username}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+
+                          {deletingUid === currentUser.uid
+                            ? "Deleting..."
+                            : "Delete"}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

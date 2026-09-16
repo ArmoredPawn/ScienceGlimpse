@@ -18,8 +18,8 @@ import {
   Coins,
   Mountain,
   RefreshCw,
+  Search,
   ShieldCheck,
-  Trash2,
   Trophy,
   UserRound,
 } from "lucide-react";
@@ -37,6 +37,12 @@ interface UserSummary {
    * (firestore.rules validUsername) — null when the profile has none.
    */
   publishableUsername: string | null;
+  /**
+   * Copied onto the profile by AuthContext at sign-in. Empty for an
+   * account that has not signed in since that started, since Firebase
+   * Authentication emails are unreadable from the client.
+   */
+  email: string;
   photoURL: string;
   automaticTokens: number;
   adjustments: number;
@@ -61,7 +67,7 @@ const Mod = () => {
   const [reason, setReason] = useState("");
 
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [deletingUid, setDeletingUid] = useState("");
+  const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState("");
@@ -227,6 +233,10 @@ const Mod = () => {
               USERNAME_PATTERN.test(storedUsername)
                 ? storedUsername
                 : null,
+            email:
+              typeof profile.email === "string"
+                ? profile.email
+                : "",
             photoURL:
               typeof profile.photoURL === "string"
                 ? profile.photoURL
@@ -282,6 +292,27 @@ const Mod = () => {
       void loadUsers();
     }
   }, [isModerator, loadUsers]);
+
+  /*
+   * Matches email, username or uid, so one box covers "who is
+   * alice@example.com" and "what is @alice up to" alike. Filtering is
+   * done here rather than as a Firestore query because the dashboard
+   * already holds every user in memory to total their ledgers, and a
+   * query would need an index plus exact-match semantics.
+   */
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredUsers = normalizedSearch
+    ? users.filter((currentUser) =>
+        [
+          currentUser.email,
+          currentUser.username,
+          currentUser.uid,
+        ].some((field) =>
+          field.toLowerCase().includes(normalizedSearch),
+        ),
+      )
+    : users;
 
   const selectedUser = users.find(
     (currentUser) => currentUser.uid === selectedUid,
@@ -342,103 +373,6 @@ const Mod = () => {
       );
     } finally {
       setSyncing(false);
-    }
-  };
-
-  /*
-   * Everything Firestore holds for one account.
-   *
-   * Deleting a user in the Firebase Authentication console removes only
-   * the login identity — every document here survives it, which is why
-   * accounts deleted there still appeared in this dashboard. Firestore
-   * does not cascade either: removing users/{uid} would strand its
-   * subcollections, so each one is cleared explicitly.
-   */
-  const USER_SUBCOLLECTIONS = [
-    "tokenLedger",
-    "tokenAdjustments",
-    "gameLedger",
-    "gameStats",
-    "gameRuns",
-    "readingProgress",
-  ];
-
-  const handleDeleteUser = async (target: UserSummary) => {
-    const confirmed = window.confirm(
-      `Permanently delete @${target.username} and all of their ` +
-        `ScienceGlimpse data? This removes their tokens, reading ` +
-        `history and leaderboard entry, and cannot be undone.\n\n` +
-        `This does not delete their Google login — remove that in the ` +
-        `Firebase Authentication console as well.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingUid(target.uid);
-    setMessage("");
-    setErrorMessage("");
-
-    try {
-      const batch = writeBatch(db);
-
-      for (const subcollection of USER_SUBCOLLECTIONS) {
-        const snapshot = await getDocs(
-          collection(db, "users", target.uid, subcollection),
-        );
-
-        snapshot.docs.forEach((entry) => {
-          batch.delete(entry.ref);
-        });
-      }
-
-      batch.delete(doc(db, "leaderboard", target.uid));
-
-      /*
-       * usernames/{name} maps a name to a uid. Read it first and only
-       * delete when it still points at this account, so a name already
-       * reclaimed by somebody else is not taken from them.
-       */
-      if (target.publishableUsername) {
-        const usernameReference = doc(
-          db,
-          "usernames",
-          target.publishableUsername,
-        );
-
-        const usernameSnapshot = await getDoc(usernameReference);
-
-        if (
-          usernameSnapshot.exists() &&
-          usernameSnapshot.data().uid === target.uid
-        ) {
-          batch.delete(usernameReference);
-        }
-      }
-
-      batch.delete(doc(db, "users", target.uid));
-
-      await batch.commit();
-
-      if (selectedUid === target.uid) {
-        setSelectedUid("");
-      }
-
-      setMessage(
-        `Deleted @${target.username}. Remember to remove their login ` +
-          `in the Firebase Authentication console too.`,
-      );
-
-      await loadUsers();
-    } catch (error) {
-      console.error("Could not delete the user:", error);
-
-      setErrorMessage(
-        "Could not delete this user. Check that you are still a moderator and that the rules allow it.",
-      );
-    } finally {
-      setDeletingUid("");
     }
   };
 
@@ -671,8 +605,11 @@ const Mod = () => {
                       key={currentUser.uid}
                       value={currentUser.uid}
                     >
-                      @{currentUser.username} —{" "}
-                      {currentUser.balance} tokens
+                      @{currentUser.username}
+                      {currentUser.email
+                        ? ` (${currentUser.email})`
+                        : ""}{" "}
+                      — {currentUser.balance} tokens
                     </option>
                   ))}
                 </select>
@@ -740,9 +677,37 @@ const Mod = () => {
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
           <div className="border-b border-border p-6">
-            <h2 className="text-xl font-semibold">
-              User balances
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold">
+                User balances
+              </h2>
+
+              <p className="text-sm text-muted-foreground">
+                {normalizedSearch
+                  ? `${filteredUsers.length} of ${users.length} shown`
+                  : `${users.length} users`}
+              </p>
+            </div>
+
+            <label className="mt-4 block">
+              <span className="sr-only">
+                Search users by email, username or UID
+              </span>
+
+              <span className="relative block">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
+                  placeholder="Search by email, username or UID"
+                  className="w-full rounded-lg border border-input bg-background py-3 pl-10 pr-3"
+                />
+              </span>
+            </label>
           </div>
 
           <div className="overflow-x-auto">
@@ -750,6 +715,7 @@ const Mod = () => {
               <thead className="bg-muted/50 text-sm">
                 <tr>
                   <th className="px-6 py-4">User</th>
+                  <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">
                     Article tokens
                   </th>
@@ -773,7 +739,7 @@ const Mod = () => {
               </thead>
 
               <tbody>
-                {users.map((currentUser) => (
+                {filteredUsers.map((currentUser) => (
                   <tr
                     key={currentUser.uid}
                     className="border-t border-border"
@@ -803,6 +769,24 @@ const Mod = () => {
                           </p>
                         </div>
                       </div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {currentUser.email ? (
+                        <a
+                          href={`mailto:${currentUser.email}`}
+                          className="text-primary hover:underline"
+                        >
+                          {currentUser.email}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-muted-foreground"
+                          title="Recorded the next time this account signs in"
+                        >
+                          —
+                        </span>
+                      )}
                     </td>
 
                     <td className="px-6 py-4">
@@ -846,42 +830,20 @@ const Mod = () => {
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUid(currentUser.uid);
-                            window.scrollTo({
-                              top: 0,
-                              behavior: "smooth",
-                            });
-                          }}
-                        >
-                          Adjust
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            deletingUid === currentUser.uid
-                          }
-                          onClick={() =>
-                            handleDeleteUser(currentUser)
-                          }
-                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          aria-label={`Delete @${currentUser.username}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-
-                          {deletingUid === currentUser.uid
-                            ? "Deleting..."
-                            : "Delete"}
-                        </Button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUid(currentUser.uid);
+                          window.scrollTo({
+                            top: 0,
+                            behavior: "smooth",
+                          });
+                        }}
+                      >
+                        Adjust
+                      </Button>
                     </td>
                   </tr>
                 ))}

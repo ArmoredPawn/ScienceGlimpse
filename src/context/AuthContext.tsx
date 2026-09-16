@@ -114,6 +114,51 @@ async function ensureSignupBonus(user: User): Promise<void> {
   }
 }
 
+/*
+ * Keeps a copy of the account's own email on its profile document.
+ *
+ * Emails live in Firebase Authentication, which a client can only read
+ * for the signed-in user — never for anybody else. The Mod dashboard
+ * therefore has no way to display or search by email unless each account
+ * records its own, which is what this does. users/{uid} is readable only
+ * by its owner or a moderator, so nothing is exposed more widely.
+ *
+ * Kept out of profile creation deliberately: if the rules permitting the
+ * field are not published yet, a refused write here is harmless, whereas
+ * inside the creation path it would take the whole profile down with it.
+ * Runs on every sign-in, so existing accounts fill in as people return
+ * and an address that changes is picked up.
+ */
+async function ensureProfileEmail(user: User): Promise<void> {
+  if (!user.email) {
+    return;
+  }
+
+  const profileReference = doc(db, "users", user.uid);
+
+  try {
+    const profileSnapshot = await getDoc(profileReference);
+
+    if (
+      !profileSnapshot.exists() ||
+      profileSnapshot.data().email === user.email
+    ) {
+      return;
+    }
+
+    await setDoc(
+      profileReference,
+      {
+        email: user.email,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    console.error("Could not record the account email:", error);
+  }
+}
+
 async function ensureUserProfile(user: User): Promise<void> {
   const profileReference = doc(db, "users", user.uid);
   const baseUsername = createDefaultUsername(user);
@@ -196,6 +241,7 @@ export function AuthProvider({
           try {
             if (currentUser) {
               await ensureUserProfile(currentUser);
+              await ensureProfileEmail(currentUser);
               await ensureSignupBonus(currentUser);
             }
           } catch (error) {

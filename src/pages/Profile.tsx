@@ -12,7 +12,12 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from "firebase/auth";
-import { Coins, KeyRound, UserRound } from "lucide-react";
+import {
+  Coins,
+  KeyRound,
+  UserCog,
+  UserRound,
+} from "lucide-react";
 
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -396,169 +401,179 @@ const Profile = () => {
           </Button>
         </div>
 
-        <form
-          onSubmit={handleSave}
-          className="mt-8 space-y-4"
-        >
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium">
-              Username
-            </span>
-
-            <div className="flex items-center rounded-lg border border-input bg-background px-3">
-              <span className="text-muted-foreground">
-                @
-              </span>
-
-              <input
-                type="text"
-                value={username}
-                onChange={handleUsernameChange}
-                minLength={3}
-                maxLength={20}
-                autoComplete="username"
-                placeholder="sciencefan"
-                className="w-full bg-transparent px-1 py-3 outline-none"
-              />
-            </div>
-          </label>
-
-          <p className="text-xs text-muted-foreground">
-            Use 3–20 lowercase letters, numbers, or
-            underscores.
-          </p>
-
-          {message && (
-            <p
-              role="status"
-              className="text-sm text-green-700"
-            >
-              {message}
-            </p>
-          )}
-
-          {errorMessage && (
-            <p
-              role="alert"
-              className="text-sm text-destructive"
-            >
-              {errorMessage}
-            </p>
-          )}
-
-          <Button
-            type="submit"
-            disabled={saving}
-            className="w-full"
-          >
-            {saving
-              ? "Saving..."
-              : "Save profile"}
-          </Button>
-        </form>
-
-        <div className="mt-8 border-t border-border pt-8">
+        {/* Username and password are both "how you sign in", so they sit
+            in one card as peers rather than as two unrelated blocks. */}
+        <div className="mt-8 rounded-xl border border-border bg-muted/20 p-6">
           <div className="flex items-center gap-3">
-            <KeyRound className="h-5 w-5 text-primary" />
+            <UserCog className="h-5 w-5 text-primary" />
 
             <h2 className="text-lg font-semibold">
-              {hasPassword
-                ? "Change your password"
-                : "Set a password"}
+              Account settings
             </h2>
           </div>
 
-          <p className="mt-2 text-sm text-muted-foreground">
-            {hasPassword
-              ? "You can log in with your email or username and this password."
-              : "You signed in with Google. Set a password and you can also log in with your email or username — same account, same tokens."}
-          </p>
+          <form
+            onSubmit={handleSave}
+            className="mt-6 space-y-4"
+          >
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium">
+                Username
+              </span>
 
-          <form onSubmit={handleSetPassword} className="mt-4">
-            {hasPassword && (
-              <label className="block">
+              <div className="flex items-center rounded-lg border border-input bg-background px-3">
+                <span className="text-muted-foreground">
+                  @
+                </span>
+
+                <input
+                  type="text"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  minLength={3}
+                  maxLength={20}
+                  autoComplete="username"
+                  placeholder="sciencefan"
+                  className="w-full bg-transparent px-1 py-3 outline-none"
+                />
+              </div>
+            </label>
+
+            <p className="text-xs text-muted-foreground">
+              Use 3–20 lowercase letters, numbers, or
+              underscores.
+            </p>
+
+            {message && (
+              <p
+                role="status"
+                className="text-sm text-green-700"
+              >
+                {message}
+              </p>
+            )}
+
+            {errorMessage && (
+              <p
+                role="alert"
+                className="text-sm text-destructive"
+              >
+                {errorMessage}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={saving}
+              className="w-full"
+            >
+              {saving
+                ? "Saving..."
+                : "Save username"}
+            </Button>
+          </form>
+
+          <div className="mt-6 border-t border-border pt-6">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+
+              <h3 className="text-sm font-medium">
+                {hasPassword ? "Password" : "Set a password"}
+              </h3>
+            </div>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              {hasPassword
+                ? "You can log in with your email or username and this password."
+                : "You signed in with Google. Set a password and you can also log in with your email or username — same account, same tokens."}
+            </p>
+
+            <form onSubmit={handleSetPassword} className="mt-4">
+              {hasPassword && (
+                <label className="block">
+                  <span className="mb-2 block text-sm font-medium">
+                    Current password
+                  </span>
+
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) =>
+                      setCurrentPassword(event.target.value)
+                    }
+                    autoComplete="current-password"
+                    required
+                    className="w-full rounded-lg border border-input bg-background px-3 py-3"
+                  />
+                </label>
+              )}
+
+              <label className="mt-4 block">
                 <span className="mb-2 block text-sm font-medium">
-                  Current password
+                  {hasPassword ? "New password" : "Password"}
                 </span>
 
                 <input
                   type="password"
-                  value={currentPassword}
+                  value={newPassword}
                   onChange={(event) =>
-                    setCurrentPassword(event.target.value)
+                    setNewPassword(event.target.value)
                   }
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                   className="w-full rounded-lg border border-input bg-background px-3 py-3"
                 />
               </label>
+
+              <label className="mt-4 block">
+                <span className="mb-2 block text-sm font-medium">
+                  Confirm password
+                </span>
+
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(event) =>
+                    setConfirmNewPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  required
+                  className="w-full rounded-lg border border-input bg-background px-3 py-3"
+                />
+              </label>
+
+              <Button
+                type="submit"
+                variant="neuron"
+                disabled={savingPassword}
+                className="mt-4 w-full"
+              >
+                {savingPassword
+                  ? "Saving..."
+                  : hasPassword
+                    ? "Change password"
+                    : "Set password"}
+              </Button>
+            </form>
+
+            {passwordMessage && (
+              <p
+                className="mt-3 text-sm text-green-600"
+                role="status"
+              >
+                {passwordMessage}
+              </p>
             )}
 
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm font-medium">
-                {hasPassword ? "New password" : "Password"}
-              </span>
-
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(event) =>
-                  setNewPassword(event.target.value)
-                }
-                autoComplete="new-password"
-                required
-                className="w-full rounded-lg border border-input bg-background px-3 py-3"
-              />
-            </label>
-
-            <label className="mt-4 block">
-              <span className="mb-2 block text-sm font-medium">
-                Confirm password
-              </span>
-
-              <input
-                type="password"
-                value={confirmNewPassword}
-                onChange={(event) =>
-                  setConfirmNewPassword(event.target.value)
-                }
-                autoComplete="new-password"
-                required
-                className="w-full rounded-lg border border-input bg-background px-3 py-3"
-              />
-            </label>
-
-            <Button
-              type="submit"
-              variant="neuron"
-              disabled={savingPassword}
-              className="mt-4 w-full"
-            >
-              {savingPassword
-                ? "Saving..."
-                : hasPassword
-                  ? "Change password"
-                  : "Set password"}
-            </Button>
-          </form>
-
-          {passwordMessage && (
-            <p
-              className="mt-3 text-sm text-green-600"
-              role="status"
-            >
-              {passwordMessage}
-            </p>
-          )}
-
-          {passwordError && (
-            <p
-              className="mt-3 text-sm text-destructive"
-              role="alert"
-            >
-              {passwordError}
-            </p>
-          )}
+            {passwordError && (
+              <p
+                className="mt-3 text-sm text-destructive"
+                role="alert"
+              >
+                {passwordError}
+              </p>
+            )}
+          </div>
         </div>
 
         <Button

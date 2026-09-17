@@ -10,6 +10,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Check, Coins, Loader2, X } from "lucide-react";
 
+import AccountPageLayout from "../components/AccountPageLayout";
 import { auth, googleProvider } from "../lib/firebase";
 import {
   setPreferredUsername,
@@ -217,14 +218,14 @@ const Signup = () => {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <AccountPageLayout>
         <p>Loading...</p>
-      </main>
+      </AccountPageLayout>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <AccountPageLayout>
       <section className="w-full max-w-md rounded-2xl border bg-background p-8 shadow-lg">
         <h1 className="text-center text-3xl font-bold">
           Join ScienceGlimpse
@@ -401,7 +402,7 @@ const Signup = () => {
           </Link>
         </p>
       </section>
-    </main>
+    </AccountPageLayout>
   );
 };
 

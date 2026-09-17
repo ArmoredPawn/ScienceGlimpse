@@ -19,6 +19,7 @@ import {
   UserRound,
 } from "lucide-react";
 
+import AccountPageLayout from "../components/AccountPageLayout";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
@@ -335,11 +336,11 @@ const Profile = () => {
 
   if (loading || loadingProfile) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <AccountPageLayout>
         <p className="text-muted-foreground">
           Loading profile...
         </p>
-      </main>
+      </AccountPageLayout>
     );
   }
 
@@ -348,7 +349,7 @@ const Profile = () => {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-24">
+    <AccountPageLayout>
       <section className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-lg">
         <div className="text-center">
           {user.photoURL ? (
@@ -585,7 +586,7 @@ const Profile = () => {
           Return home
         </Button>
       </section>
-    </main>
+    </AccountPageLayout>
   );
 };
 

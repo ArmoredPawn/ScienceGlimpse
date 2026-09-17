@@ -3,6 +3,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { Link, useNavigate } from "react-router-dom";
 import { MailCheck } from "lucide-react";
 
+import AccountPageLayout from "../components/AccountPageLayout";
 import { auth } from "../lib/firebase";
 import {
   describeAuthError,
@@ -65,7 +66,7 @@ const ForgotPassword = () => {
 
   if (sent) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-12">
+      <AccountPageLayout>
         <section className="w-full max-w-md rounded-2xl border bg-background p-8 text-center shadow-lg">
           <MailCheck className="mx-auto h-12 w-12 text-primary" />
 
@@ -91,12 +92,12 @@ const ForgotPassword = () => {
             Back to log in
           </Link>
         </section>
-      </main>
+      </AccountPageLayout>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <AccountPageLayout>
       <section className="w-full max-w-md rounded-2xl border bg-background p-8 shadow-lg">
         <h1 className="text-center text-3xl font-bold">
           Reset your password
@@ -158,7 +159,7 @@ const ForgotPassword = () => {
           Back to log in
         </button>
       </section>
-    </main>
+    </AccountPageLayout>
   );
 };
 

@@ -6,6 +6,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Coins } from "lucide-react";
 
+import AccountPageLayout from "../components/AccountPageLayout";
 import { auth, googleProvider } from "../lib/firebase";
 import {
   useAuth,
@@ -114,15 +115,15 @@ const Login = () => {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <AccountPageLayout>
         <p>Loading...</p>
-      </main>
+      </AccountPageLayout>
     );
   }
 
   if (user) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
+      <AccountPageLayout>
         <section className="w-full max-w-md rounded-2xl border bg-background p-8 text-center shadow-lg">
           {user.photoURL && (
             <img
@@ -171,12 +172,12 @@ const Login = () => {
             </p>
           )}
         </section>
-      </main>
+      </AccountPageLayout>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <AccountPageLayout>
       <section className="w-full max-w-md rounded-2xl border bg-background p-8 shadow-lg">
         <h1 className="text-center text-3xl font-bold">
           Log in to ScienceGlimpse
@@ -299,7 +300,7 @@ const Login = () => {
           Return home
         </button>
       </section>
-    </main>
+    </AccountPageLayout>
   );
 };
 

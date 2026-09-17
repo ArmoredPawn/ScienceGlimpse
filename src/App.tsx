@@ -16,6 +16,8 @@ import Classes from "./pages/Classes";
 import Leaderboard from "./pages/Leaderboard";
 import Tokens from "./pages/Tokens";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import Mod from "./pages/Mod";
 // import CreatureProfile from "./pages/Creatureprofile";
@@ -61,6 +63,11 @@ const App = () => (
           <Route path="/donate" element={<Donate />} />
           <Route path="/classes" element={<Classes />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
           <Route path="/profile" element={<Profile />} />
           <Route path="/mod" element={<Mod />} />
           {/* <Route path="/creatureprofile" element={<CreatureProfile />} /> */}

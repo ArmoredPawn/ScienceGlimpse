@@ -37,6 +37,86 @@ interface AuthProviderProps {
 class UsernameTakenError extends Error {}
 
 /*
+ * Set by the sign-up page just before createUserWithEmailAndPassword, so
+ * the username the user chose is the one claimed here. Without it
+ * onAuthStateChanged would fire first and mint a username derived from
+ * their email instead.
+ */
+let preferredUsername: string | null = null;
+
+export function setPreferredUsername(
+  username: string | null,
+): void {
+  preferredUsername = username;
+}
+
+const normalizeUsername = (value: string): string =>
+  value.trim().toLowerCase();
+
+const hasPasswordProvider = (user: User): boolean =>
+  user.providerData.some(
+    (provider) => provider.providerId === "password",
+  );
+
+/*
+ * Lets somebody sign in with their username instead of their email.
+ *
+ * Firebase Auth only ever authenticates by email, and a signed-out
+ * visitor cannot read users/{uid} to discover it, so the login page needs
+ * a mapping it can read before anyone is authenticated — that is
+ * usernames/{name}, which is publicly gettable (but not listable).
+ *
+ * Written only for accounts that actually have a password, since those
+ * are the only ones that can use username-and-password login. A
+ * Google-only account never has its address copied here.
+ */
+async function ensureUsernameLoginEmail(
+  user: User,
+): Promise<void> {
+  if (!user.email || !hasPasswordProvider(user)) {
+    return;
+  }
+
+  try {
+    const profileSnapshot = await getDoc(
+      doc(db, "users", user.uid),
+    );
+
+    if (!profileSnapshot.exists()) {
+      return;
+    }
+
+    const username = profileSnapshot.data().username;
+
+    if (typeof username !== "string" || !username) {
+      return;
+    }
+
+    const usernameReference = doc(db, "usernames", username);
+    const usernameSnapshot = await getDoc(usernameReference);
+
+    if (
+      !usernameSnapshot.exists() ||
+      usernameSnapshot.data().uid !== user.uid ||
+      usernameSnapshot.data().email === user.email
+    ) {
+      return;
+    }
+
+    await setDoc(
+      usernameReference,
+      { uid: user.uid, email: user.email },
+      { merge: true },
+    );
+  } catch (error) {
+    console.error(
+      "Could not record the username login email:",
+      error,
+    );
+  }
+}
+
+/*
  * New accounts start with a welcome balance so a first visit to Science
  * Summit is playable before you have read anything.
  *
@@ -161,7 +241,18 @@ async function ensureProfileEmail(user: User): Promise<void> {
 
 async function ensureUserProfile(user: User): Promise<void> {
   const profileReference = doc(db, "users", user.uid);
-  const baseUsername = createDefaultUsername(user);
+
+  // A username chosen on the sign-up page wins over a derived one.
+  const chosenUsername = preferredUsername
+    ? normalizeUsername(preferredUsername)
+    : null;
+
+  preferredUsername = null;
+
+  const baseUsername =
+    chosenUsername && chosenUsername.length >= 3
+      ? chosenUsername
+      : createDefaultUsername(user);
 
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const suffix =
@@ -242,6 +333,7 @@ export function AuthProvider({
             if (currentUser) {
               await ensureUserProfile(currentUser);
               await ensureProfileEmail(currentUser);
+              await ensureUsernameLoginEmail(currentUser);
               await ensureSignupBonus(currentUser);
             }
           } catch (error) {

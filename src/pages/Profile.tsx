@@ -6,12 +6,22 @@ import {
   runTransaction,
   serverTimestamp,
 } from "firebase/firestore";
-import { Coins, UserRound } from "lucide-react";
+import {
+  EmailAuthProvider,
+  linkWithCredential,
+  reauthenticateWithCredential,
+  updatePassword,
+} from "firebase/auth";
+import { Coins, KeyRound, UserRound } from "lucide-react";
 
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
 import { subscribeToTokenBalance } from "../lib/tokens";
+import {
+  describeAuthError,
+  MIN_PASSWORD_LENGTH,
+} from "../lib/auth";
 
 interface StoredProfile {
   username: string;
@@ -33,6 +43,20 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] =
+    useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const hasPassword = Boolean(
+    user?.providerData.some(
+      (provider) => provider.providerId === "password",
+    ),
+  );
 
   useEffect(() => {
     if (loading) {
@@ -148,8 +172,21 @@ const Profile = () => {
           : "";
 
         if (!usernameSnapshot.exists()) {
+          /*
+           * Carry the login email onto the new username document, or
+           * logging in with the new username would stop working — the
+           * signed-out login page resolves username to email through
+           * here and nowhere else. Only for accounts with a password;
+           * Google-only accounts keep their address private.
+           */
           transaction.set(usernameReference, {
             uid: user.uid,
+            ...(user.email &&
+            user.providerData.some(
+              (provider) => provider.providerId === "password",
+            )
+              ? { email: user.email }
+              : {}),
           });
         }
 
@@ -169,6 +206,14 @@ const Profile = () => {
         transaction.set(profileReference, {
           username: normalizedUsername,
           photoURL: user.photoURL ?? "",
+          // A full set, so the stored email has to be carried over or
+          // renaming yourself would erase it from the Mod dashboard.
+          ...(profileSnapshot.exists() &&
+          typeof profileSnapshot.data().email === "string"
+            ? { email: profileSnapshot.data().email }
+            : user.email
+              ? { email: user.email }
+              : {}),
           createdAt: profileSnapshot.exists()
             ? profileSnapshot.data().createdAt
             : serverTimestamp(),
@@ -196,6 +241,78 @@ const Profile = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  /*
+   * Google-only accounts can gain a password without becoming a second
+   * account: linkWithCredential attaches an email/password credential to
+   * the existing user, so the uid, tokens, reading history and
+   * leaderboard entry all carry over untouched. Afterwards they can sign
+   * in either way.
+   */
+  const handleSetPassword = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (!user?.email) {
+      return;
+    }
+
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setPasswordError(
+        `Use at least ${MIN_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("The two passwords do not match.");
+      return;
+    }
+
+    setSavingPassword(true);
+    setPasswordError("");
+    setPasswordMessage("");
+
+    try {
+      if (hasPassword) {
+        // Firebase requires a recent login before a password change, so
+        // prove the current one first.
+        await reauthenticateWithCredential(
+          user,
+          EmailAuthProvider.credential(
+            user.email,
+            currentPassword,
+          ),
+        );
+
+        await updatePassword(user, newPassword);
+
+        setPasswordMessage("Your password has been changed.");
+      } else {
+        await linkWithCredential(
+          user,
+          EmailAuthProvider.credential(
+            user.email,
+            newPassword,
+          ),
+        );
+
+        setPasswordMessage(
+          "Password set. You can now log in with your email or username as well as with Google.",
+        );
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (error) {
+      console.error("Could not save the password:", error);
+      setPasswordError(describeAuthError(error));
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -340,11 +457,115 @@ const Profile = () => {
           </Button>
         </form>
 
+        <div className="mt-8 border-t border-border pt-8">
+          <div className="flex items-center gap-3">
+            <KeyRound className="h-5 w-5 text-primary" />
+
+            <h2 className="text-lg font-semibold">
+              {hasPassword
+                ? "Change your password"
+                : "Set a password"}
+            </h2>
+          </div>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            {hasPassword
+              ? "You can log in with your email or username and this password."
+              : "You signed in with Google. Set a password and you can also log in with your email or username — same account, same tokens."}
+          </p>
+
+          <form onSubmit={handleSetPassword} className="mt-4">
+            {hasPassword && (
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium">
+                  Current password
+                </span>
+
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) =>
+                    setCurrentPassword(event.target.value)
+                  }
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-lg border border-input bg-background px-3 py-3"
+                />
+              </label>
+            )}
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-medium">
+                {hasPassword ? "New password" : "Password"}
+              </span>
+
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) =>
+                  setNewPassword(event.target.value)
+                }
+                autoComplete="new-password"
+                required
+                className="w-full rounded-lg border border-input bg-background px-3 py-3"
+              />
+            </label>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-sm font-medium">
+                Confirm password
+              </span>
+
+              <input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(event) =>
+                  setConfirmNewPassword(event.target.value)
+                }
+                autoComplete="new-password"
+                required
+                className="w-full rounded-lg border border-input bg-background px-3 py-3"
+              />
+            </label>
+
+            <Button
+              type="submit"
+              variant="neuron"
+              disabled={savingPassword}
+              className="mt-4 w-full"
+            >
+              {savingPassword
+                ? "Saving..."
+                : hasPassword
+                  ? "Change password"
+                  : "Set password"}
+            </Button>
+          </form>
+
+          {passwordMessage && (
+            <p
+              className="mt-3 text-sm text-green-600"
+              role="status"
+            >
+              {passwordMessage}
+            </p>
+          )}
+
+          {passwordError && (
+            <p
+              className="mt-3 text-sm text-destructive"
+              role="alert"
+            >
+              {passwordError}
+            </p>
+          )}
+        </div>
+
         <Button
           type="button"
           variant="outline"
           onClick={handleLogout}
-          className="mt-3 w-full"
+          className="mt-8 w-full"
         >
           Log out
         </Button>

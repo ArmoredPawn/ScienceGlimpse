@@ -390,15 +390,6 @@ const Profile = () => {
               {tokens === 1 ? "token" : "tokens"}
             </span>
           </div>
-
-          <Button
-            type="button"
-            variant="neuron"
-            className="mt-3 w-full"
-            onClick={() => navigate("/science-summit")}
-          >
-            Spend Tokens — Play Science Summit
-          </Button>
         </div>
 
         {/* Username and password are both "how you sign in", so they sit

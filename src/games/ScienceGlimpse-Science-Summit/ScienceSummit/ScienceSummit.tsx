@@ -26,6 +26,70 @@ type Player = {
   jumpsLeft: number;
 };
 
+/*
+ * Whether this device is driven by touch, which is what decides if the
+ * on-screen arrow controls are shown.
+ *
+ * Deliberately not a width breakpoint. A `max-width: 700px` media query
+ * used to gate the controls, and no iPad is ever that narrow — the
+ * smallest is 744px across in portrait — so every tablet got a game with
+ * no visible way to move and a hint telling it to press keys it does not
+ * have. `any-pointer: coarse` asks the real question instead, and
+ * matches phones, tablets and touchscreen laptops at any size or
+ * orientation.
+ *
+ * maxTouchPoints is the fallback for a browser without that media
+ * feature. Keyboard listeners stay active either way, so an iPad with a
+ * keyboard attached can use whichever it likes.
+ */
+const TOUCH_QUERY = "(any-pointer: coarse)";
+
+function detectTouchDevice(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.matchMedia?.(TOUCH_QUERY).matches) {
+    return true;
+  }
+
+  return (
+    typeof navigator !== "undefined" &&
+    navigator.maxTouchPoints > 0
+  );
+}
+
+function useIsTouchDevice(): boolean {
+  const [isTouchDevice, setIsTouchDevice] = useState(
+    detectTouchDevice
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(TOUCH_QUERY);
+
+    // Re-checks when a pointing device is attached or removed, so
+    // plugging a mouse into a tablet is picked up without a reload.
+    if (typeof mediaQuery.addEventListener !== "function") {
+      return;
+    }
+
+    const update = () =>
+      setIsTouchDevice(detectTouchDevice());
+
+    mediaQuery.addEventListener("change", update);
+
+    return () => {
+      mediaQuery.removeEventListener("change", update);
+    };
+  }, []);
+
+  return isTouchDevice;
+}
+
 const WORLD_WIDTH = 1000;
 const VIEW_HEIGHT = 720;
 
@@ -224,6 +288,8 @@ function makeInitialPlatforms(): Platform[] {
 export default function ScienceSummit() {
   const { user, loading: authLoading } = useAuth();
   const gameEnergy = useGameEnergy();
+
+  const isTouchDevice = useIsTouchDevice();
 
   /*
    * Science Summit is signed-in only (see the gate at the bottom of this
@@ -2131,10 +2197,23 @@ export default function ScienceSummit() {
               anymore.
             </p>
 
+            {/* Naming keys to somebody holding an iPad is no help, so a
+                touch device is shown the buttons it actually has. Only
+                the labels differ — the three rows are the same. */}
             <div className="sg-controls-grid">
               <div>
-                <kbd>A</kbd>
-                <kbd>D</kbd>
+                {isTouchDevice ? (
+                  <>
+                    <kbd>←</kbd>
+                    <kbd>→</kbd>
+                  </>
+                ) : (
+                  <>
+                    <kbd>A</kbd>
+                    <kbd>D</kbd>
+                  </>
+                )}
+
                 <span>
                   Move
                 </span>
@@ -2142,7 +2221,7 @@ export default function ScienceSummit() {
 
               <div>
                 <kbd>
-                  SPACE
+                  {isTouchDevice ? "↑" : "SPACE"}
                 </kbd>
 
                 <span>
@@ -2152,7 +2231,7 @@ export default function ScienceSummit() {
 
               <div>
                 <kbd>
-                  P
+                  {isTouchDevice ? "Ⅱ" : "P"}
                 </kbd>
 
                 <span>
@@ -2220,17 +2299,21 @@ export default function ScienceSummit() {
               className="sg-summit-canvas"
             />
 
-            <div className="sg-summit-hint">
-              <span>
-                A/D
-              </span>{" "}
-              move&nbsp;&nbsp;
+            {/* The on-screen controls say this already on a touch
+                device, and the keys named here do not exist there. */}
+            {!isTouchDevice && (
+              <div className="sg-summit-hint">
+                <span>
+                  A/D
+                </span>{" "}
+                move&nbsp;&nbsp;
 
-              <span>
-                SPACE
-              </span>{" "}
-              jump
-            </div>
+                <span>
+                  SPACE
+                </span>{" "}
+                jump
+              </div>
+            )}
 
             {/* MESSAGE */}
             {message && (
@@ -2302,8 +2385,14 @@ export default function ScienceSummit() {
               </div>
             )}
 
-            {/* MOBILE CONTROLS */}
-            <div className="sg-mobile-controls">
+            {/* TOUCH CONTROLS */}
+            <div
+              className={
+                isTouchDevice
+                  ? "sg-mobile-controls is-touch"
+                  : "sg-mobile-controls"
+              }
+            >
               <button
                 aria-label="Move left"
                 onPointerDown={() =>
@@ -2317,6 +2406,17 @@ export default function ScienceSummit() {
                   )
                 }
                 onPointerCancel={() =>
+                  keysRef.current.delete(
+                    "arrowleft"
+                  )
+                }
+                /*
+                 * A mouse released off the button never fires pointerup
+                 * on it, which would leave the key stuck down. Touch
+                 * captures the pointer implicitly, so this is only
+                 * really for a touchscreen laptop's trackpad.
+                 */
+                onPointerLeave={() =>
                   keysRef.current.delete(
                     "arrowleft"
                   )
@@ -2347,6 +2447,11 @@ export default function ScienceSummit() {
                   )
                 }
                 onPointerCancel={() =>
+                  keysRef.current.delete(
+                    "arrowright"
+                  )
+                }
+                onPointerLeave={() =>
                   keysRef.current.delete(
                     "arrowright"
                   )

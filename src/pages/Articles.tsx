@@ -87,7 +87,11 @@ const Articles: React.FC = () => {
   // Lazy load the articles JSON only after the page renders
   useEffect(() => {
     import('../data/articles.json').then((module) => {
-      setAllArticles(module.default as Article[]);
+      // Newest first: highest id at the top, id 1 last
+      const sorted = [...(module.default as Article[])].sort(
+        (a, b) => Number(b.id) - Number(a.id)
+      );
+      setAllArticles(sorted);
       setArticlesLoaded(true);
     });
   }, []);

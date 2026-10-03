@@ -13,16 +13,29 @@ import {
 import {
   doc,
   getDoc,
+  onSnapshot,
   runTransaction,
   serverTimestamp,
   setDoc,
+  type Timestamp,
 } from "firebase/firestore";
 
 import { auth, db } from "../lib/firebase";
 
+/**
+ * A moderator-issued suspension of the signed-in account, from
+ * suspensions/{uid}. Firestore rules refuse the account's writes while
+ * it exists; SuspensionGate shows the reason in place of the site.
+ */
+export interface Suspension {
+  reason: string;
+  createdAt: Date | null;
+}
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
+  suspension: Suspension | null;
   logout: () => Promise<void>;
 }
 
@@ -239,6 +252,37 @@ async function ensureProfileEmail(user: User): Promise<void> {
   }
 }
 
+function toSuspension(
+  data: Record<string, unknown>,
+): Suspension {
+  const createdAt = data.createdAt as Timestamp | undefined;
+
+  return {
+    reason:
+      typeof data.reason === "string" ? data.reason : "",
+    createdAt: createdAt?.toDate?.() ?? null,
+  };
+}
+
+/*
+ * Read once before the sign-in housekeeping below, which a suspended
+ * account is not allowed to do — every one of those writes would only
+ * be refused by the rules and logged as an error. A failed read (rules
+ * not yet published, offline) counts as not suspended: the rules are
+ * what actually enforce a suspension, this only saves pointless writes.
+ */
+async function isSuspended(user: User): Promise<boolean> {
+  try {
+    const snapshot = await getDoc(
+      doc(db, "suspensions", user.uid),
+    );
+
+    return snapshot.exists();
+  } catch {
+    return false;
+  }
+}
+
 async function ensureUserProfile(user: User): Promise<void> {
   const profileReference = doc(db, "users", user.uid);
 
@@ -321,6 +365,8 @@ export function AuthProvider({
 }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [suspension, setSuspension] =
+    useState<Suspension | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -330,7 +376,10 @@ export function AuthProvider({
       (currentUser) => {
         void (async () => {
           try {
-            if (currentUser) {
+            if (
+              currentUser &&
+              !(await isSuspended(currentUser))
+            ) {
               await ensureUserProfile(currentUser);
               await ensureProfileEmail(currentUser);
               await ensureUsernameLoginEmail(currentUser);
@@ -364,13 +413,45 @@ export function AuthProvider({
     };
   }, []);
 
+  /*
+   * Watched live rather than read once, so a suspension or restore from
+   * the Mod dashboard reaches someone who is already on the site without
+   * them having to reload.
+   */
+  const uid = user?.uid ?? null;
+
+  useEffect(() => {
+    if (!uid) {
+      setSuspension(null);
+      return;
+    }
+
+    return onSnapshot(
+      doc(db, "suspensions", uid),
+      (snapshot) => {
+        setSuspension(
+          snapshot.exists()
+            ? toSuspension(snapshot.data())
+            : null,
+        );
+      },
+      (error) => {
+        console.error(
+          "Could not check account suspension:",
+          error,
+        );
+        setSuspension(null);
+      },
+    );
+  }, [uid]);
+
   async function logout() {
     await signOut(auth);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, logout }}
+      value={{ user, loading, suspension, logout }}
     >
       {children}
     </AuthContext.Provider>

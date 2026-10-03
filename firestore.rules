@@ -18,6 +18,21 @@ service cloud.firestore {
         );
     }
 
+    /*
+     * A suspension is a document in suspensions/{uid}, which only a
+     * moderator can create or remove (see that collection below).
+     * Every rule that lets a player write their own data checks this, so
+     * a suspended account can still sign in and read but can no longer
+     * earn or spend tokens, play, post scores or change its profile —
+     * even with the UI bypassed. Restoring the account is deleting that
+     * one document; nothing else needs to change.
+     */
+    function notSuspended(userId) {
+      return !exists(
+        /databases/$(database)/documents/suspensions/$(userId)
+      );
+    }
+
     function validUsername(username) {
       return username is string
         && username.size() >= 3
@@ -113,6 +128,35 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Account suspensions, managed from the Mod dashboard. The owner may
+    // read their own (AuthContext watches it to show the "suspended"
+    // screen); only moderators may list, suspend or restore. A suspension
+    // is never edited in place — restoring deletes it, and suspending
+    // again creates a fresh one with a new reason.
+    match /suspensions/{userId} {
+      allow get: if isOwner(userId) || isModerator();
+      allow list: if isModerator();
+
+      // A moderator cannot suspend themselves, so nobody can lock
+      // themselves out of the dashboard by accident.
+      allow create: if isModerator()
+        && userId != request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'reason',
+          'moderatorUid',
+          'createdAt'
+        ])
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() >= 3
+        && request.resource.data.reason.size() <= 200
+        && request.resource.data.moderatorUid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if false;
+
+      allow delete: if isModerator();
+    }
+
     match /users/{userId} {
       // Only the owner or a moderator may read a profile — the app never
       // needs to read another user's profile otherwise (Profile.tsx reads
@@ -123,12 +167,15 @@ service cloud.firestore {
       allow get, list: if isOwner(userId) || isModerator();
 
       allow create: if isOwner(userId)
+        && notSuspended(userId)
         && validProfile(request.resource.data);
 
       allow update: if isOwner(userId)
+        && notSuspended(userId)
         && validProfile(request.resource.data);
 
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId)
+        && notSuspended(userId);
     }
 
     match /usernames/{username} {
@@ -158,6 +205,7 @@ service cloud.firestore {
        * lookup, which this project deliberately does not have.
        */
       allow create: if signedIn()
+        && notSuspended(request.auth.uid)
         && validUsername(username)
         && request.resource.data.keys().hasOnly(['uid', 'email'])
         && request.resource.data.uid == request.auth.uid
@@ -170,11 +218,13 @@ service cloud.firestore {
         );
 
       allow delete: if signedIn()
+        && notSuspended(request.auth.uid)
         && resource.data.uid == request.auth.uid;
 
       // Only ever to attach or refresh the owner's own login email. The
       // uid is pinned, so an update can never transfer a username.
       allow update: if signedIn()
+        && notSuspended(request.auth.uid)
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.keys().hasOnly(['uid', 'email'])
@@ -199,6 +249,7 @@ service cloud.firestore {
       allow get, list: if true;
 
       allow create, update: if (isOwner(userId) || isModerator())
+        && notSuspended(userId)
         && request.resource.data.keys().hasOnly([
           'username',
           'bestAltitude',
@@ -212,7 +263,9 @@ service cloud.firestore {
           /databases/$(database)/documents/users/$(userId)/gameStats/scienceSummit
         ).data.bestAltitude;
 
-      allow delete: if false;
+      // Moderators remove a player's entry when suspending them; the
+      // dashboard republishes it (through the rule above) on restore.
+      allow delete: if isModerator();
     }
 
     // In-progress Science Summit run, so a player can pause, close the
@@ -225,6 +278,7 @@ service cloud.firestore {
       allow get, list: if isOwner(userId);
 
       allow create, update: if isOwner(userId)
+        && notSuspended(userId)
         && request.resource.data.keys().hasOnly([
           'altitude',
           'checkpointX',
@@ -247,6 +301,7 @@ service cloud.firestore {
       allow get, list: if isOwner(userId);
 
       allow create: if isOwner(userId)
+        && notSuspended(userId)
         && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && request.resource.data.activeSeconds == 15
@@ -257,6 +312,7 @@ service cloud.firestore {
       // Checked on update as well as create: without it, reads invented
       // while the bound was missing could still be driven to payout.
       allow update: if isOwner(userId)
+        && notSuspended(userId)
         && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && resource.data.rewarded == false
@@ -311,6 +367,7 @@ service cloud.firestore {
       // Keep the 30 here in step with SIGNUP_BONUS_TOKENS in
       // src/context/AuthContext.tsx.
       allow create: if isOwner(userId)
+        && notSuspended(userId)
         && articleId == 'signup_bonus'
         && request.resource.data.keys().hasOnly([
           'amount',
@@ -324,6 +381,7 @@ service cloud.firestore {
       // Article-reading reward. A second allow for the same operation is
       // OR'd with the one above.
       allow create: if isOwner(userId)
+        && notSuspended(userId)
         && validArticleId(articleId)
         && request.resource.data.keys().hasAll([
           'articleId',
@@ -403,6 +461,7 @@ service cloud.firestore {
         || isModerator();
 
       allow create: if isOwner(userId)
+        && notSuspended(userId)
         && request.resource.data.keys().hasOnly([
           'amount',
           'type',
@@ -425,6 +484,7 @@ service cloud.firestore {
         || isModerator();
 
       allow create, update: if isOwner(userId)
+        && notSuspended(userId)
         && request.resource.data.keys().hasOnly([
           'bestAltitude',
           'updatedAt'

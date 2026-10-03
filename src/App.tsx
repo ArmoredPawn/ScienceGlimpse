@@ -31,6 +31,7 @@ import Mod from "./pages/Mod";
 // import HowArticles from "./pages/Howarticles";
 // import How from "./pages/How";
 import AnalyticsTracker from "./AnalyticsTracker"
+import SuspensionGate from "./components/SuspensionGate";
 import { ScienceSummit } from "./games/ScienceGlimpse-Science-Summit/ScienceSummit";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AnalyticsTracker />
+        <SuspensionGate>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/articles" element={<Articles />} />
@@ -83,6 +85,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </SuspensionGate>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

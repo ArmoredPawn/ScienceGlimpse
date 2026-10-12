@@ -152,7 +152,7 @@ const Leaderboard = () => {
 
             <div className="text-center mt-10">
               <Button asChild variant="neuron" size="lg">
-                <Link to="/science-summit">Play Science Summit</Link>
+                <Link to="/science-summit">Play ScienceGlimpse Summit</Link>
               </Button>
             </div>
           </div>

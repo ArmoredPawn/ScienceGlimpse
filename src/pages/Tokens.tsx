@@ -42,7 +42,7 @@ const Tokens = () => {
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Tokens are what you earn for being part of ScienceGlimpse —
                 reading science, and writing it. They are how you power your
-                climb in Science Summit.
+                climb in ScienceGlimpse Summit.
               </p>
             </div>
 
@@ -146,7 +146,7 @@ const Tokens = () => {
                 <Mountain className="h-6 w-6 text-primary" />
 
                 <p className="font-semibold text-foreground">
-                  Science Summit
+                  ScienceGlimpse Summit
                 </p>
               </div>
 
@@ -186,7 +186,7 @@ const Tokens = () => {
               </Button>
 
               <Button asChild variant="cosmic" size="lg" className="flex-1">
-                <Link to="/science-summit">Play Science Summit</Link>
+                <Link to="/science-summit">Play ScienceGlimpse Summit</Link>
               </Button>
             </div>
           </div>

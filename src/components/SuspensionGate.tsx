@@ -35,7 +35,7 @@ const SuspensionGate = ({ children }: SuspensionGateProps) => {
 
       <p className="mt-2 max-w-md text-muted-foreground">
         A ScienceGlimpse moderator has suspended this account, so
-        you can't read for tokens, play Science Summit or change your
+        you can't read for tokens, play ScienceGlimpse Summit or change your
         profile right now.
       </p>
 

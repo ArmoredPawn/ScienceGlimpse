@@ -44,6 +44,14 @@ const replaceMeta = (html, attribute, name, content) =>
     `<meta ${attribute}="${name}">`,
   );
 
+const setCanonical = (html, url) =>
+  replaceOrFail(
+    html,
+    /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
+    `<link rel="canonical" href="${escapeAttribute(url)}" />`,
+    '<link rel="canonical">',
+  );
+
 const setTitle = (html, title) =>
   replaceOrFail(
     html,
@@ -173,6 +181,16 @@ const buildArticlePage = (article) => {
   html = replaceMeta(html, 'property', 'og:description', description);
   html = replaceMeta(html, 'property', 'og:image', imageUrl);
   html = replaceMeta(html, 'name', 'twitter:image', imageUrl);
+  html = replaceMeta(html, 'name', 'twitter:title', article.title);
+  html = replaceMeta(html, 'name', 'twitter:description', description);
+  html = replaceMeta(html, 'property', 'og:url', articleUrl);
+  html = setCanonical(html, articleUrl);
+
+  // The site-wide card is a small square logo; a real thumbnail earns the
+  // large card.
+  if (article.thumbnail) {
+    html = replaceMeta(html, 'name', 'twitter:card', 'summary_large_image');
+  }
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -190,6 +208,7 @@ const buildArticlePage = (article) => {
       '@type': 'Organization',
       name: SITE_NAME,
       url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.png` },
     },
     ...(article.date
       ? { datePublished: article.date, dateModified: article.date }
@@ -197,11 +216,7 @@ const buildArticlePage = (article) => {
   };
 
   html = appendToHead(html, [
-    `<link rel="canonical" href="${escapeAttribute(articleUrl)}" />`,
-    `<meta property="og:url" content="${escapeAttribute(articleUrl)}" />`,
-    `<meta name="twitter:title" content="${escapeAttribute(article.title)}" />`,
-    `<meta name="twitter:description" content="${escapeAttribute(description)}" />`,
-    `<meta name="robots" content="index, follow" />`,
+    `<meta name="robots" content="index, follow, max-image-preview:large" />`,
     // Prevent a literal </script> inside the JSON from closing the tag early.
     `<script type="application/ld+json">${JSON.stringify(
       structuredData,
@@ -255,6 +270,10 @@ const buildStaticPage = (page) => {
   html = replaceMeta(html, 'name', 'description', description);
   html = replaceMeta(html, 'property', 'og:title', fullTitle);
   html = replaceMeta(html, 'property', 'og:description', description);
+  html = replaceMeta(html, 'property', 'og:url', pageUrl);
+  html = replaceMeta(html, 'name', 'twitter:title', fullTitle);
+  html = replaceMeta(html, 'name', 'twitter:description', description);
+  html = setCanonical(html, pageUrl);
 
   if (page.includeArticleIndex) {
     html = replaceOrFail(
@@ -266,11 +285,7 @@ const buildStaticPage = (page) => {
   }
 
   return appendToHead(html, [
-    `<link rel="canonical" href="${escapeAttribute(pageUrl)}" />`,
-    `<meta property="og:url" content="${escapeAttribute(pageUrl)}" />`,
-    `<meta name="twitter:title" content="${escapeAttribute(fullTitle)}" />`,
-    `<meta name="twitter:description" content="${escapeAttribute(description)}" />`,
-    `<meta name="robots" content="index, follow" />`,
+    `<meta name="robots" content="index, follow, max-image-preview:large" />`,
   ]);
 };
 

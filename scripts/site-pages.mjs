@@ -64,19 +64,19 @@ export const staticPages = [
   },
   {
     path: '/science-summit',
-    title: 'Science Summit',
+    title: 'ScienceGlimpse Summit',
     description:
-      'Play Science Summit, the ScienceGlimpse climbing game. Spend tokens earned by reading articles and climb as high as you can.',
+      'Play ScienceGlimpse Summit, the ScienceGlimpse climbing game. Spend tokens earned by reading articles and climb as high as you can.',
   },
   {
     path: '/tokens',
     title: 'Tokens',
     description:
-      'How ScienceGlimpse tokens work: earn them by reading articles, and spend them climbing in Science Summit.',
+      'How ScienceGlimpse tokens work: earn them by reading articles, and spend them climbing in ScienceGlimpse Summit.',
   },
   {
     path: '/leaderboard',
-    title: 'Science Summit Leaderboard',
+    title: 'ScienceGlimpse Summit Leaderboard',
     description:
       'The highest climbers in ScienceGlimpse Summit, ranked by best altitude reached.',
   },

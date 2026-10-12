@@ -292,7 +292,7 @@ export default function ScienceSummit() {
   const isTouchDevice = useIsTouchDevice();
 
   /*
-   * Science Summit is signed-in only (see the gate at the bottom of this
+   * ScienceGlimpse Summit is signed-in only (see the gate at the bottom of this
    * component), so energy always starts at the player's real
    * ScienceGlimpse token balance.
    */
@@ -2037,7 +2037,7 @@ export default function ScienceSummit() {
   );
 
   /*
-   * Science Summit is signed-in only — a player's real ScienceGlimpse
+   * ScienceGlimpse Summit is signed-in only — a player's real ScienceGlimpse
    * tokens power the climb, and their best altitude goes on the public
    * leaderboard, so there's no anonymous practice mode anymore.
    */
@@ -2068,7 +2068,7 @@ export default function ScienceSummit() {
             <h2>Sign In to Play</h2>
 
             <p>
-              Science Summit is only available to signed-in
+              ScienceGlimpse Summit is only available to signed-in
               ScienceGlimpse members — your real tokens power your
               climb, and your best altitude appears on the leaderboard.
             </p>

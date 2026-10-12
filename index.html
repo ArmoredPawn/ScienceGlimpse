@@ -8,11 +8,27 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "ScienceGlimpse",
-      "url": "https://scienceglimpse.org/"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://scienceglimpse.org/#website",
+          "name": "ScienceGlimpse",
+          "url": "https://scienceglimpse.org/",
+          "publisher": { "@id": "https://scienceglimpse.org/#organization" }
+        },
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://scienceglimpse.org/#organization",
+          "name": "ScienceGlimpse",
+          "url": "https://scienceglimpse.org/",
+          "logo": "https://scienceglimpse.org/favicon.png",
+          "description": "Student-led science articles that decode and reimagine complex topics in just 5 minutes."
+        }
+      ]
     }
     </script>
+
+    <link rel="canonical" href="https://scienceglimpse.org/" />
 
     <meta name="description" content="ScienceGlimpse is made of student-led science articles that decode and reimagine complex topics in just 5 minutes. From black holes to brainwaves — science made accessible." />
     <meta name="author" content="ScienceGlimpse Team" />
@@ -32,11 +48,14 @@
     <meta property="og:title" content="ScienceGlimpse - Student-Led Science Exploration" />
     <meta property="og:description" content="ScienceGlimpse is made of student-led science articles that decode and reimagine complex topics in just 5 minutes. From black holes to brainwaves — science made accessible." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/favicon.png" />
+    <meta property="og:image" content="https://scienceglimpse.org/favicon.png" />
+    <meta property="og:url" content="https://scienceglimpse.org/" />
     <meta property="og:site_name" content="ScienceGlimpse">
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/scienceeyelogo.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="ScienceGlimpse - Student-Led Science Exploration" />
+    <meta name="twitter:description" content="ScienceGlimpse is made of student-led science articles that decode and reimagine complex topics in just 5 minutes. From black holes to brainwaves — science made accessible." />
+    <meta name="twitter:image" content="https://scienceglimpse.org/favicon.png" />
     <link rel="icon" href="/favicon.png" type="image/png">
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4RRLCNEK8N"></script>

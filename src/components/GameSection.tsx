@@ -37,12 +37,12 @@ const GameSection: React.FC = () => {
           <button
             type="button"
             onClick={handlePlayClick}
-            aria-label="Play Science Summit"
+            aria-label="Play ScienceGlimpse Summit"
             className="group relative w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(147,51,234,0.5)] border-4 border-purple-500/70"
           >
             <img
               src={gameScreenshot}
-              alt="Gameplay screenshot of Science Summit, a vertical platformer"
+              alt="Gameplay screenshot of ScienceGlimpse Summit, a vertical platformer"
               className="w-full h-auto block transition-transform duration-300 group-hover:scale-105"
             />
 
@@ -64,18 +64,17 @@ const GameSection: React.FC = () => {
           </h2>
 
           <p className="text-lg leading-relaxed text-gray-200 mt-6">
-            Climb as high as you can in <b>Science Summit</b>, an original
-            vertical platformer built by ScienceGlimpse. Jump across
-            floating platforms while lava rises steadily from below —
-            and power your climb with your real ScienceGlimpse tokens,
-            earned by reading articles on the site.
+            Climb as high as you can in <b>ScienceGlimpse Summit</b>. Jump across
+            floating platforms while lava rises steadily from below.
+            Power your climb with your real ScienceGlimpse tokens,
+            earned by reading articles or publishing new articles.
           </p>
 
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 mt-12">
+          <div className="flex flex-col sm:flex-row gap-4 mt-12">
             <Button
               variant="outline"
               size="lg"
-              className="glow-action-btn-green flex-1 whitespace-nowrap px-4 text-black dark:text-white text-lg py-4 transition-all duration-300"
+              className="glow-action-btn-green text-black dark:text-white text-lg py-4 transition-all duration-300"
               onClick={handlePlayClick}
             >
               Play Now
@@ -84,19 +83,10 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="flex-1 whitespace-nowrap px-4 text-lg py-4 transition-all duration-300"
+              className="text-lg py-4 transition-all duration-300"
               onClick={() => navigate('/leaderboard')}
             >
               Leaderboard
-            </Button>
-
-            <Button
-              variant="outline"
-              size="lg"
-              className="flex-1 whitespace-nowrap px-4 text-lg py-4 transition-all duration-300"
-              onClick={() => navigate('/tokens')}
-            >
-              How Tokens Work
             </Button>
           </div>
         </div>
@@ -110,8 +100,8 @@ const GameSection: React.FC = () => {
             <DialogTitle>Sign In to Play</DialogTitle>
 
             <DialogDescription>
-              Science Summit is only available to signed-in
-              ScienceGlimpse members — your real tokens power the
+              ScienceGlimpse Summit is only available to signed-in
+              ScienceGlimpse members. Your real tokens power the
               climb, and your best altitude goes on the leaderboard.
             </DialogDescription>
           </DialogHeader>

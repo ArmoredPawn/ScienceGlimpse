@@ -287,7 +287,7 @@ const Login = () => {
                 Create an account
               </Link>{" "}
               and get {SIGNUP_BONUS_TOKENS} tokens to start climbing in
-              Science Summit.
+              ScienceGlimpse Summit.
             </p>
           </div>
         </div>

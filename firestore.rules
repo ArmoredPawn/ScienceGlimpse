@@ -232,7 +232,7 @@ service cloud.firestore {
         && request.resource.data.email.size() <= 320;
     }
 
-    // Public Science Summit leaderboard. A denormalized copy of each
+    // Public ScienceGlimpse Summit leaderboard. A denormalized copy of each
     // player's username + best altitude (src/hooks/useBestAltitude.ts).
     // users/{uid} is private (see above), so this is the only place a
     // username is ever exposed publicly — deliberately minimal (no
@@ -268,7 +268,7 @@ service cloud.firestore {
       allow delete: if isModerator();
     }
 
-    // In-progress Science Summit run, so a player can pause, close the
+    // In-progress ScienceGlimpse Summit run, so a player can pause, close the
     // tab, and pick the same climb back up later instead of restarting
     // from the ground (src/games/.../ScienceSummit.tsx). Cleared by the
     // client the moment a run actually ends (lava or falling out of
@@ -445,7 +445,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Science Summit game energy ledger. Entries are immutable, exactly
+    // ScienceGlimpse Summit game energy ledger. Entries are immutable, exactly
     // like tokenLedger above, and count toward a player's real token
     // balance (see src/lib/tokens.ts, which sums tokenLedger +
     // tokenAdjustments + gameLedger).
@@ -474,7 +474,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Science Summit best-altitude record, scoped to the account
+    // ScienceGlimpse Summit best-altitude record, scoped to the account
     // (src/hooks/useBestAltitude.ts). Purely a vanity stat with no
     // currency behind it, so this only needs light shape validation —
     // unlike the token collections above, there's nothing to protect

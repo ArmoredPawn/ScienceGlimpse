@@ -9,7 +9,7 @@ import {
 } from "@/lib/tokens";
 
 /**
- * Ties Science Summit's in-game "energy" to a signed-in player's real
+ * Ties ScienceGlimpse Summit's in-game "energy" to a signed-in player's real
  * ScienceGlimpse token balance. Every JUMPS_PER_TOKEN jumps writes a
  * fixed -1 entry to users/{uid}/gameLedger, validated by firestore.rules
  * the same way the article-reading reward is validated.

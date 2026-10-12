@@ -1,4 +1,4 @@
-# Science Summit
+# ScienceGlimpse Summit
 
 A self-contained React + TypeScript vertical platformer for ScienceGlimpse.
 

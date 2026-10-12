@@ -3,7 +3,7 @@ import { collection, onSnapshot, type QueryDocumentSnapshot } from "firebase/fir
 import { db } from "./firebase";
 
 /**
- * Science Summit spends tokens by jumping: every JUMPS_PER_TOKEN jumps
+ * ScienceGlimpse Summit spends tokens by jumping: every JUMPS_PER_TOKEN jumps
  * costs TOKENS_PER_CHARGE tokens. Mirrored exactly in firestore.rules
  * (users/{uid}/gameLedger create rule) — keep both in sync.
  */
@@ -21,7 +21,7 @@ function sumAmounts(docs: QueryDocumentSnapshot[]): number {
 /**
  * A user's real ScienceGlimpse token balance is the sum of every
  * append-only ledger a user can accrue tokens from: article-reading
- * rewards, moderator adjustments, and Science Summit game energy.
+ * rewards, moderator adjustments, and ScienceGlimpse Summit game energy.
  * There is no single stored balance field on purpose (see firestore.rules).
  */
 export function subscribeToTokenBalance(

@@ -17,7 +17,7 @@ export interface SavedRun {
 }
 
 /**
- * An in-progress Science Summit climb, saved so a signed-in player can
+ * An in-progress ScienceGlimpse Summit climb, saved so a signed-in player can
  * pause, close the tab, and pick the same run back up later instead of
  * restarting from the ground — earning more tokens (by reading articles)
  * in between and coming back with them. Cleared the moment a run

@@ -30,7 +30,7 @@ function writeLocalBest(value: number): void {
 }
 
 /**
- * Best Science Summit altitude, scoped to the signed-in account (via
+ * Best ScienceGlimpse Summit altitude, scoped to the signed-in account (via
  * Firestore) rather than the device — otherwise switching accounts on
  * the same browser would show whichever account last set the record,
  * not each player's own best. Signed-out play falls back to a

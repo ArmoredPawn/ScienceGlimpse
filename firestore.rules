@@ -11,11 +11,36 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    /*
+     * A suspended moderator loses their powers until restored — otherwise
+     * a suspension would stop them playing but not moderating, and they
+     * could even lift their own suspension.
+     */
     function isModerator() {
       return signedIn()
         && exists(
           /databases/$(database)/documents/moderators/$(request.auth.uid)
-        );
+        )
+        && notSuspended(request.auth.uid);
+    }
+
+    /*
+     * Site owners are moderators whose moderators/{uid} document has
+     * owner: true. That field can only be set in the Firebase console
+     * (see the moderators collection below), and only owners can make
+     * or remove moderators.
+     */
+    function isSiteOwnerAccount(userId) {
+      return exists(
+          /databases/$(database)/documents/moderators/$(userId)
+        )
+        && get(
+          /databases/$(database)/documents/moderators/$(userId)
+        ).data.get('owner', false) == true;
+    }
+
+    function isSiteOwner() {
+      return isModerator() && isSiteOwnerAccount(request.auth.uid);
     }
 
     /*
@@ -117,15 +142,32 @@ service cloud.firestore {
     }
 
     match /moderators/{moderatorId} {
-      // A user may only verify their own moderator status.
-      allow get: if signedIn()
-        && request.auth.uid == moderatorId;
+      // Anyone may check their own status (AuthContext watches it to
+      // show the Mod link); moderators may see the whole team so the
+      // dashboard can badge them.
+      allow get: if (signedIn() && request.auth.uid == moderatorId)
+        || isModerator();
 
-      allow list: if false;
+      allow list: if isModerator();
 
-      // Moderator membership can only be changed manually
-      // through the Firebase console.
-      allow create, update, delete: if false;
+      // Only a site owner can make someone a moderator, and only an
+      // existing account in good standing. The field list leaves out
+      // `owner`, so owner status can never be granted from the site —
+      // only in the Firebase console.
+      allow create: if isSiteOwner()
+        && exists(/databases/$(database)/documents/users/$(moderatorId))
+        && notSuspended(moderatorId)
+        && request.resource.data.keys().hasOnly(['addedBy', 'addedAt'])
+        && request.resource.data.addedBy == request.auth.uid
+        && request.resource.data.addedAt == request.time;
+
+      allow update: if false;
+
+      // Owners can remove moderators, but never an owner (themselves
+      // included) — that also stays a console-only change.
+      allow delete: if isSiteOwner()
+        && moderatorId != request.auth.uid
+        && resource.data.get('owner', false) != true;
     }
 
     // Account suspensions, managed from the Mod dashboard. The owner may
@@ -138,9 +180,12 @@ service cloud.firestore {
       allow list: if isModerator();
 
       // A moderator cannot suspend themselves, so nobody can lock
-      // themselves out of the dashboard by accident.
+      // themselves out of the dashboard by accident, and nobody can
+      // suspend a site owner — since suspension strips moderator powers,
+      // that would let one moderator lock the owners out.
       allow create: if isModerator()
         && userId != request.auth.uid
+        && !isSiteOwnerAccount(userId)
         && request.resource.data.keys().hasOnly([
           'reason',
           'moderatorUid',

@@ -32,10 +32,20 @@ export interface Suspension {
   createdAt: Date | null;
 }
 
+/**
+ * From moderators/{uid}: "owner" when that document has owner: true
+ * (set by hand in the Firebase console), "moderator" when it exists
+ * without it. Only owners can make or remove moderators.
+ */
+export type ModeratorRole = "owner" | "moderator";
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   suspension: Suspension | null;
+  /** The signed-in account's role, or null for a regular user. */
+  moderatorRole: ModeratorRole | null;
+  moderatorRoleLoading: boolean;
   logout: () => Promise<void>;
 }
 
@@ -445,13 +455,67 @@ export function AuthProvider({
     );
   }, [uid]);
 
+  /*
+   * Watched live like the suspension, so the Mod link appears (or
+   * disappears) the moment an owner changes this account's role. Stored
+   * with the uid it was read for, so a role from a previous account is
+   * never shown, and the role counts as loading until this account's
+   * first snapshot arrives.
+   */
+  const [moderatorState, setModeratorState] = useState<{
+    uid: string;
+    role: ModeratorRole | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!uid) {
+      return;
+    }
+
+    return onSnapshot(
+      doc(db, "moderators", uid),
+      (snapshot) => {
+        setModeratorState({
+          uid,
+          role: !snapshot.exists()
+            ? null
+            : snapshot.data().owner === true
+              ? "owner"
+              : "moderator",
+        });
+      },
+      (error) => {
+        console.error(
+          "Could not check moderator access:",
+          error,
+        );
+        setModeratorState({ uid, role: null });
+      },
+    );
+  }, [uid]);
+
+  const moderatorRoleLoading =
+    uid !== null && moderatorState?.uid !== uid;
+
+  const moderatorRole =
+    uid !== null && moderatorState?.uid === uid
+      ? moderatorState.role
+      : null;
+
   async function logout() {
     await signOut(auth);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, suspension, logout }}
+      value={{
+        user,
+        loading,
+        suspension,
+        moderatorRole,
+        moderatorRoleLoading,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

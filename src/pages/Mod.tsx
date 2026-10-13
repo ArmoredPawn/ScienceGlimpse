@@ -20,11 +20,14 @@ import {
 import {
   Ban,
   Coins,
+  Crown,
   Mountain,
   RefreshCw,
   RotateCcw,
   Search,
   ShieldCheck,
+  ShieldMinus,
+  ShieldPlus,
   Trophy,
   UserRound,
   Users,
@@ -42,12 +45,22 @@ import {
 } from "../components/ui/sheet";
 import { toast } from "../components/ui/sonner";
 import { db } from "../lib/firebase";
-import { useAuth } from "../context/AuthContext";
+import {
+  useAuth,
+  type ModeratorRole,
+} from "../context/AuthContext";
 
 interface SuspensionSummary {
   reason: string;
   moderatorUid: string;
   createdAt: Date | null;
+}
+
+interface RoleSummary {
+  role: ModeratorRole;
+  /** Who made them a moderator; empty for one added in the console. */
+  addedBy: string;
+  addedAt: Date | null;
 }
 
 interface UserSummary {
@@ -73,6 +86,8 @@ interface UserSummary {
   bestAltitude: number;
   /** suspensions/{uid}, or null for an account in good standing. */
   suspension: SuspensionSummary | null;
+  /** moderators/{uid}, or null for a regular user. */
+  moderator: RoleSummary | null;
 }
 
 type StatusFilter = "all" | "active" | "suspended";
@@ -118,12 +133,35 @@ const StatusBadge = ({ user }: { user: UserSummary }) =>
     <Badge variant="secondary">Active</Badge>
   );
 
+const RoleBadge = ({ user }: { user: UserSummary }) =>
+  user.moderator?.role === "owner" ? (
+    <Badge className="gap-1">
+      <Crown className="h-3 w-3" />
+      Owner
+    </Badge>
+  ) : user.moderator ? (
+    <Badge variant="outline" className="gap-1">
+      <ShieldCheck className="h-3 w-3" />
+      Moderator
+    </Badge>
+  ) : null;
+
 const Mod = () => {
-  const { user, loading: authLoading } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    suspension,
+    moderatorRole,
+    moderatorRoleLoading,
+  } = useAuth();
   const navigate = useNavigate();
 
-  const [isModerator, setIsModerator] =
-    useState<boolean | null>(null);
+  // A suspended moderator loses their powers (firestore.rules
+  // isModerator), so the dashboard treats them as a regular user.
+  const isModerator: boolean | null = moderatorRoleLoading
+    ? null
+    : moderatorRole !== null && !suspension;
+  const isSiteOwner = isModerator === true && moderatorRole === "owner";
 
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -142,48 +180,12 @@ const Mod = () => {
   const [suspendReason, setSuspendReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
+  const [changingRole, setChangingRole] = useState(false);
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/login", { replace: true });
-      return;
     }
-
-    let cancelled = false;
-
-    const checkModerator = async () => {
-      try {
-        const moderatorSnapshot = await getDoc(
-          doc(db, "moderators", user.uid),
-        );
-
-        if (!cancelled) {
-          setIsModerator(moderatorSnapshot.exists());
-        }
-      } catch (error) {
-        console.error(
-          "Could not verify moderator access:",
-          error,
-        );
-
-        if (!cancelled) {
-          setIsModerator(false);
-          setErrorMessage(
-            "Moderator access could not be verified.",
-          );
-        }
-      }
-    };
-
-    void checkModerator();
-
-    return () => {
-      cancelled = true;
-    };
   }, [authLoading, navigate, user]);
 
   const loadUsers = useCallback(async () => {
@@ -195,11 +197,42 @@ const Mod = () => {
     setErrorMessage("");
 
     try {
-      const [usersSnapshot, suspensionsSnapshot] =
+      const [usersSnapshot, suspensionsSnapshot, moderatorDocuments] =
         await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "suspensions")),
+          // Only badges depend on this, so until the rules letting
+          // moderators list it are published the dashboard still loads,
+          // just without them.
+          getDocs(collection(db, "moderators")).then(
+            (snapshot) => snapshot.docs,
+            (error: unknown) => {
+              console.error("Could not load moderators:", error);
+              return [];
+            },
+          ),
         ]);
+
+      const moderators = new Map<string, RoleSummary>(
+        moderatorDocuments.map(
+          (moderatorDocument): [string, RoleSummary] => {
+            const data = moderatorDocument.data();
+            const addedAt = data.addedAt as Timestamp | undefined;
+
+            return [
+              moderatorDocument.id,
+              {
+                role: data.owner === true ? "owner" : "moderator",
+                addedBy:
+                  typeof data.addedBy === "string"
+                    ? data.addedBy
+                    : "",
+                addedAt: addedAt?.toDate?.() ?? null,
+              },
+            ];
+          },
+        ),
+      );
 
       const suspensions = new Map<string, SuspensionSummary>(
         suspensionsSnapshot.docs.map((suspensionDocument) => {
@@ -313,6 +346,7 @@ const Mod = () => {
                   ? storedAltitude
                   : 0,
               suspension: suspensions.get(uid) ?? null,
+              moderator: moderators.get(uid) ?? null,
             };
           },
         ),
@@ -563,6 +597,64 @@ const Mod = () => {
     await loadUsers();
   };
 
+  /*
+   * Owner-only (firestore.rules refuses anyone else). The document never
+   * carries `owner`, so this can only ever make a regular moderator;
+   * owners are set in the Firebase console.
+   */
+  const handlePromote = async () => {
+    if (!user || !selectedUser) {
+      return;
+    }
+
+    setChangingRole(true);
+
+    try {
+      await setDoc(doc(db, "moderators", selectedUser.uid), {
+        addedBy: user.uid,
+        addedAt: serverTimestamp(),
+      });
+
+      toast.success(
+        `@${selectedUser.username} is now a moderator.`,
+      );
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Could not add moderator:", error);
+
+      toast.error(
+        "They could not be made a moderator. Check the latest firestore.rules are published.",
+      );
+    } finally {
+      setChangingRole(false);
+    }
+  };
+
+  const handleDemote = async () => {
+    if (!selectedUser) {
+      return;
+    }
+
+    setChangingRole(true);
+
+    try {
+      await deleteDoc(doc(db, "moderators", selectedUser.uid));
+
+      toast.success(
+        `@${selectedUser.username} is no longer a moderator.`,
+      );
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Could not remove moderator:", error);
+
+      toast.error("Their moderator access could not be removed.");
+    } finally {
+      setChangingRole(false);
+    }
+  };
+
   const handleAdjustment = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -686,6 +778,7 @@ const Mod = () => {
   }
 
   const isSelf = selectedUser?.uid === user.uid;
+  const selectedIsOwner = selectedUser?.moderator?.role === "owner";
 
   return (
     <div className="min-h-screen bg-background">
@@ -703,7 +796,9 @@ const Mod = () => {
             </div>
 
             <p className="mt-2 text-muted-foreground">
-              Manage accounts, suspensions and token balances.
+              {isSiteOwner
+                ? "Manage accounts, moderators, suspensions and token balances."
+                : "Manage accounts, suspensions and token balances."}
             </p>
           </div>
 
@@ -884,7 +979,10 @@ const Mod = () => {
                     </td>
 
                     <td className="px-6 py-4">
-                      <StatusBadge user={currentUser} />
+                      <div className="flex flex-wrap gap-1">
+                        <StatusBadge user={currentUser} />
+                        <RoleBadge user={currentUser} />
+                      </div>
                     </td>
 
                     <td className="px-6 py-4">
@@ -968,6 +1066,7 @@ const Mod = () => {
 
                 <div className="flex items-center gap-2 pt-2">
                   <StatusBadge user={selectedUser} />
+                  <RoleBadge user={selectedUser} />
 
                   <span className="truncate text-xs text-muted-foreground">
                     {selectedUser.uid}
@@ -1062,6 +1161,10 @@ const Mod = () => {
                   <p className="mt-3 text-sm text-muted-foreground">
                     You can't suspend your own account.
                   </p>
+                ) : selectedIsOwner ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Site owners can't be suspended.
+                  </p>
                 ) : (
                   <form
                     onSubmit={handleSuspend}
@@ -1107,6 +1210,77 @@ const Mod = () => {
                   </form>
                 )}
               </section>
+
+              {(isSiteOwner || selectedUser.moderator) && (
+                <section className="mt-8 border-t border-border pt-6">
+                  <h3 className="text-sm font-semibold">
+                    Moderator access
+                  </h3>
+
+                  {selectedIsOwner ? (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Site owner. Owner status can only be changed in
+                      the Firebase console.
+                    </p>
+                  ) : selectedUser.moderator ? (
+                    <div className="mt-3 grid gap-3">
+                      <p className="text-sm text-muted-foreground">
+                        Moderator
+                        {selectedUser.moderator.addedAt &&
+                          ` since ${selectedUser.moderator.addedAt.toLocaleDateString()}`}
+                        {selectedUser.moderator.addedBy &&
+                          `, added by ${usernameOf(
+                            selectedUser.moderator.addedBy,
+                          )}`}
+                        .
+                      </p>
+
+                      {isSiteOwner ? (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => void handleDemote()}
+                          disabled={changingRole}
+                        >
+                          <ShieldMinus className="mr-2 h-4 w-4" />
+
+                          {changingRole
+                            ? "Removing..."
+                            : "Remove moderator"}
+                        </Button>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Only the site owner can remove moderators.
+                        </p>
+                      )}
+                    </div>
+                  ) : selectedUser.suspension ? (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Restore this account before making them a
+                      moderator.
+                    </p>
+                  ) : (
+                    <div className="mt-3 grid gap-3">
+                      <p className="text-sm text-muted-foreground">
+                        Moderators can manage accounts, suspensions and
+                        tokens, but can't make other moderators.
+                      </p>
+
+                      <Button
+                        type="button"
+                        onClick={() => void handlePromote()}
+                        disabled={changingRole}
+                      >
+                        <ShieldPlus className="mr-2 h-4 w-4" />
+
+                        {changingRole
+                          ? "Saving..."
+                          : "Make moderator"}
+                      </Button>
+                    </div>
+                  )}
+                </section>
+              )}
 
               <section className="mt-8 border-t border-border pt-6">
                 <h3 className="text-sm font-semibold">

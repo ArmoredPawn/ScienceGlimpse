@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { Menu, UserRound, X } from "lucide-react";
+import { Menu, ShieldCheck, UserRound, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import ScienceEyeLogo from "./ScienceEyeLogo";
@@ -9,8 +9,12 @@ import { useAuth } from "../context/AuthContext";
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, suspension, moderatorRole } = useAuth();
   const accountPath = user ? "/profile" : "/login";
+
+  // Only moderators (and owners) see the Mod link. Hiding it is just
+  // tidiness — Mod.tsx and firestore.rules are what keep others out.
+  const showModLink = user !== null && moderatorRole !== null && !suspension;
 
   const navItems = [
     { label: "Home", to: "/" },
@@ -59,6 +63,15 @@ const Navigation: React.FC = () => {
           <div className="z-30 hidden items-center gap-2 min-[1200px]:flex">
             <ThemeToggle />
 
+            {showModLink && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/mod" className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  Mod
+                </Link>
+              </Button>
+            )}
+
             {!loading && (
               <Button asChild variant={user ? "outline" : "default"} size="sm">
                 <Link to={accountPath} className="flex items-center gap-2">
@@ -102,6 +115,17 @@ const Navigation: React.FC = () => {
                   {item.label}
                 </Link>
               ))}
+
+              {showModLink && (
+                <Link
+                  to="/mod"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-primary transition-colors hover:bg-muted"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Mod
+                </Link>
+              )}
 
               {!loading && (
                 <Link

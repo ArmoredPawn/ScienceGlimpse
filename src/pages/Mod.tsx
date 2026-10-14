@@ -21,7 +21,6 @@ import {
   Ban,
   Coins,
   Crown,
-  Mountain,
   RefreshCw,
   RotateCcw,
   Search,
@@ -78,6 +77,11 @@ interface UserSummary {
    */
   email: string;
   photoURL: string;
+  /**
+   * Stamped by AuthContext whenever the account opens the site. Null for
+   * an account that has not visited since that started.
+   */
+  lastSeenAt: Date | null;
   automaticTokens: number;
   adjustments: number;
   gameTokens: number;
@@ -330,6 +334,10 @@ const Mod = () => {
                 typeof profile.photoURL === "string"
                   ? profile.photoURL
                   : "",
+              lastSeenAt:
+                (
+                  profile.lastSeenAt as Timestamp | undefined
+                )?.toDate?.() ?? null,
               automaticTokens,
               adjustments,
               gameTokens,
@@ -934,14 +942,14 @@ const Mod = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
+            <table className="w-full min-w-[760px] text-left">
               <thead className="bg-muted/50 text-sm">
                 <tr>
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Tokens</th>
                   <th className="px-6 py-4">Articles</th>
-                  <th className="px-6 py-4">Best climb</th>
+                  <th className="px-6 py-4">Last seen</th>
                   <th className="px-6 py-4">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -996,12 +1004,12 @@ const Mod = () => {
                       {currentUser.completedArticles}
                     </td>
 
-                    <td className="px-6 py-4">
-                      {currentUser.bestAltitude > 0 ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Mountain className="h-4 w-4 text-muted-foreground" />
-                          {currentUser.bestAltitude.toLocaleString()} m
-                        </span>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      {currentUser.lastSeenAt ? (
+                        currentUser.lastSeenAt.toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
                       ) : (
                         <span className="text-muted-foreground">
                           —

@@ -262,6 +262,38 @@ async function ensureProfileEmail(user: User): Promise<void> {
   }
 }
 
+/*
+ * Stamps the profile with when this account was last on the site, for
+ * the Mod dashboard's "Last seen" column. Runs on every page load that
+ * restores a session, and again when a tab left open comes back into
+ * view — throttled, so flicking between tabs isn't a write each time.
+ * Like the email above, a refused write is only logged.
+ */
+const LAST_SEEN_INTERVAL_MS = 5 * 60 * 1000;
+
+let lastSeenRecorded: { uid: string; at: number } | null = null;
+
+async function recordLastSeen(user: User): Promise<void> {
+  if (
+    lastSeenRecorded?.uid === user.uid &&
+    Date.now() - lastSeenRecorded.at < LAST_SEEN_INTERVAL_MS
+  ) {
+    return;
+  }
+
+  lastSeenRecorded = { uid: user.uid, at: Date.now() };
+
+  try {
+    await setDoc(
+      doc(db, "users", user.uid),
+      { lastSeenAt: serverTimestamp() },
+      { merge: true },
+    );
+  } catch (error) {
+    console.error("Could not record last seen time:", error);
+  }
+}
+
 function toSuspension(
   data: Record<string, unknown>,
 ): Suspension {
@@ -394,6 +426,7 @@ export function AuthProvider({
               await ensureProfileEmail(currentUser);
               await ensureUsernameLoginEmail(currentUser);
               await ensureSignupBonus(currentUser);
+              await recordLastSeen(currentUser);
             }
           } catch (error) {
             console.error(
@@ -454,6 +487,29 @@ export function AuthProvider({
       },
     );
   }, [uid]);
+
+  useEffect(() => {
+    if (!user || suspension) {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void recordLastSeen(user);
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () =>
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+  }, [user, suspension]);
 
   /*
    * Watched live like the suspension, so the Mod link appears (or

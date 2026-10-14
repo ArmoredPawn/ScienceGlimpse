@@ -74,12 +74,18 @@ service cloud.firestore {
      *
      * users/{uid} is readable only by its owner or a moderator (below),
      * so this does not expose addresses to anyone else.
+     *
+     * lastSeenAt is optional too: AuthContext stamps it whenever the
+     * account opens the site, for the Mod dashboard's "Last seen" column.
+     * Its value is checked where it is written (create and update below)
+     * so it can only ever be the server's current time.
      */
     function validProfile(profile) {
       return profile.keys().hasOnly([
           'username',
           'photoURL',
           'email',
+          'lastSeenAt',
           'createdAt',
           'updatedAt'
         ])
@@ -213,11 +219,21 @@ service cloud.firestore {
 
       allow create: if isOwner(userId)
         && notSuspended(userId)
-        && validProfile(request.resource.data);
+        && validProfile(request.resource.data)
+        && request.resource.data.get('lastSeenAt', request.time)
+          == request.time;
 
+      // lastSeenAt may be left alone or removed, but never set to
+      // anything other than now, so nobody can fake when they were on.
       allow update: if isOwner(userId)
         && notSuspended(userId)
-        && validProfile(request.resource.data);
+        && validProfile(request.resource.data)
+        && (
+          !request.resource.data.diff(resource.data)
+            .affectedKeys().hasAny(['lastSeenAt'])
+          || request.resource.data.get('lastSeenAt', request.time)
+            == request.time
+        );
 
       allow delete: if isOwner(userId)
         && notSuspended(userId);

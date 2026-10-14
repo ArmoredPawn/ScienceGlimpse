@@ -220,6 +220,7 @@ const Profile = () => {
             : user.email
               ? { email: user.email }
               : {}),
+          lastSeenAt: serverTimestamp(),
           createdAt: profileSnapshot.exists()
             ? profileSnapshot.data().createdAt
             : serverTimestamp(),

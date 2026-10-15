@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Article from './pages/Article';
 import Classes from "./pages/Classes";
 import Leaderboard from "./pages/Leaderboard";
+import Arcade from "./pages/Arcade";
 import Tokens from "./pages/Tokens";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/articles" element={<Articles />} />
           <Route path="/submission" element={<Submission />} />
+          <Route path="/arcade" element={<Arcade />} />
           <Route path="/science-summit" element={<ScienceSummit />} />
           {/* The game lived at /game until it was renamed; keep old links alive. */}
           <Route

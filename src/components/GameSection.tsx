@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Trophy } from 'lucide-react';
+import { Gamepad2 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -36,8 +36,8 @@ const GameSection: React.FC = () => {
         <div className="flex-1 flex justify-center">
           <button
             type="button"
-            onClick={handlePlayClick}
-            aria-label="Play ScienceGlimpse Summit"
+            onClick={() => navigate('/arcade')}
+            aria-label="Open the ScienceGlimpse Arcade"
             className="group relative w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(147,51,234,0.5)] border-4 border-purple-500/70"
           >
             <img
@@ -48,8 +48,8 @@ const GameSection: React.FC = () => {
 
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="flex items-center gap-2 rounded-full bg-white/90 px-5 py-3 text-sm font-semibold text-black">
-                <Play className="h-4 w-4 fill-current" />
-                Play Now
+                <Gamepad2 className="h-4 w-4" />
+                Open Arcade
               </div>
             </div>
           </button>
@@ -84,9 +84,18 @@ const GameSection: React.FC = () => {
               variant="outline"
               size="lg"
               className="text-lg py-4 transition-all duration-300"
-              onClick={() => navigate('/leaderboard')}
+              onClick={() => navigate('/arcade')}
             >
-              Leaderboard
+              Arcade
+            </Button>
+
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-lg py-4 transition-all duration-300"
+              onClick={() => navigate('/tokens')}
+            >
+              How Tokens Work
             </Button>
           </div>
         </div>

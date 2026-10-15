@@ -1,31 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Gamepad2 } from 'lucide-react';
 import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from './ui/dialog';
-import { useAuth } from '@/context/AuthContext';
 import gameScreenshot from '@/assets/science-summit-gameplay.png';
 
 const GameSection: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-  const handlePlayClick = () => {
-    if (user) {
-      navigate('/science-summit');
-      return;
-    }
-
-    setShowLoginPrompt(true);
-  };
 
   return (
     <section className="relative py-20 md:py-24 overflow-hidden text-gray-100">
@@ -75,15 +55,6 @@ const GameSection: React.FC = () => {
               variant="outline"
               size="lg"
               className="glow-action-btn-green text-black dark:text-white text-lg py-4 transition-all duration-300"
-              onClick={handlePlayClick}
-            >
-              Play Now
-            </Button>
-
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-lg py-4 transition-all duration-300"
               onClick={() => navigate('/arcade')}
             >
               Arcade
@@ -102,31 +73,6 @@ const GameSection: React.FC = () => {
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-transparent animate-pulse pointer-events-none" />
-
-      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Sign In to Play</DialogTitle>
-
-            <DialogDescription>
-              ScienceGlimpse Summit is only available to signed-in
-              ScienceGlimpse members. Your real tokens power the
-              climb, and your best altitude goes on the leaderboard.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Button
-            variant="neuron"
-            className="w-full"
-            onClick={() => {
-              setShowLoginPrompt(false);
-              navigate('/login');
-            }}
-          >
-            Log In
-          </Button>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };

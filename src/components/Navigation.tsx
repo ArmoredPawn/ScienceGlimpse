@@ -22,7 +22,7 @@ const Navigation: React.FC = () => {
     { label: "About", to: "/about" },
     { label: "Members", to: "/members" },
     { label: "Classes", to: "/classes" },
-    { label: "Tokens", to: "/tokens" },
+    { label: "Arcade", to: "/arcade" },
     { label: "Publish", to: "/submission" },
     { label: "Contact", to: "/contact" },
   ];

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gamepad2, Play, Trophy } from 'lucide-react';
+import { Coins, Gamepad2, Play, Trophy } from 'lucide-react';
 
 import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
@@ -80,6 +80,16 @@ const Arcade = () => {
                 Science games powered by the tokens you earn on
                 ScienceGlimpse. Pick a game and see how you rank.
               </p>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="mt-6"
+                onClick={() => navigate('/tokens')}
+              >
+                <Coins className="h-4 w-4" />
+                How Tokens Work
+              </Button>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">

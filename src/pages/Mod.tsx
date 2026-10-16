@@ -21,6 +21,7 @@ import {
   Ban,
   Coins,
   Crown,
+  Flag,
   RefreshCw,
   RotateCcw,
   Search,
@@ -87,6 +88,8 @@ interface UserSummary {
   gameTokens: number;
   balance: number;
   completedArticles: number;
+  /** The most article rewards earned within any one hour. */
+  fastestHourReads: number;
   bestAltitude: number;
   /** suspensions/{uid}, or null for an account in good standing. */
   suspension: SuspensionSummary | null;
@@ -94,7 +97,7 @@ interface UserSummary {
   moderator: RoleSummary | null;
 }
 
-type StatusFilter = "all" | "active" | "suspended";
+type StatusFilter = "all" | "active" | "suspended" | "flagged";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
@@ -102,7 +105,40 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "suspended", label: "Suspended" },
+  { value: "flagged", label: "Flagged" },
 ];
+
+/*
+ * Accounts that earn this many article rewards within one hour are
+ * flagged for a moderator to look at — a flag, never an automatic
+ * penalty. Each article takes four minutes of active reading and the
+ * rules space rewards at least three minutes apart, so a script running
+ * flat out tops out at 20 an hour, while 8 means a finished article
+ * every seven and a half minutes for a whole hour. Accounts that farmed
+ * rewards before that spacing existed show up here too.
+ */
+const RAPID_READING_THRESHOLD = 8;
+
+const HOUR_MS = 60 * 60 * 1000;
+
+const mostInOneHour = (times: number[]): number => {
+  const sorted = [...times].sort((first, second) => first - second);
+  let most = 0;
+  let start = 0;
+
+  for (let end = 0; end < sorted.length; end += 1) {
+    while (sorted[end] - sorted[start] >= HOUR_MS) {
+      start += 1;
+    }
+
+    most = Math.max(most, end - start + 1);
+  }
+
+  return most;
+};
+
+const isFlagged = (user: UserSummary): boolean =>
+  user.fastestHourReads >= RAPID_READING_THRESHOLD;
 
 const sumAmounts = (
   documents: { data: () => Record<string, unknown> }[],
@@ -136,6 +172,18 @@ const StatusBadge = ({ user }: { user: UserSummary }) =>
   ) : (
     <Badge variant="secondary">Active</Badge>
   );
+
+const FlagBadge = ({ user }: { user: UserSummary }) =>
+  isFlagged(user) ? (
+    <Badge
+      variant="outline"
+      className="gap-1 border-amber-500/60 text-amber-600 dark:text-amber-400"
+      title={`${user.fastestHourReads} article rewards within one hour`}
+    >
+      <Flag className="h-3 w-3" />
+      Flagged
+    </Badge>
+  ) : null;
 
 const RoleBadge = ({ user }: { user: UserSummary }) =>
   user.moderator?.role === "owner" ? (
@@ -308,6 +356,9 @@ const Mod = () => {
             const gameTokens = sumAmounts(
               gameLedgerSnapshot.docs,
             );
+            const articleRewards = ledgerSnapshot.docs.filter(
+              (entry) => entry.data().type === "article_read",
+            );
 
             const storedAltitude = gameStatsSnapshot.exists()
               ? gameStatsSnapshot.data().bestAltitude
@@ -345,10 +396,17 @@ const Mod = () => {
                 0,
                 automaticTokens + adjustments + gameTokens,
               ),
-              completedArticles: ledgerSnapshot.docs.filter(
-                (entry) =>
-                  entry.data().type === "article_read",
-              ).length,
+              completedArticles: articleRewards.length,
+              fastestHourReads: mostInOneHour(
+                articleRewards.flatMap((entry) => {
+                  const createdAt = entry.data().createdAt as
+                    | Timestamp
+                    | undefined;
+                  const time = createdAt?.toMillis?.();
+
+                  return time === undefined ? [] : [time];
+                }),
+              ),
               bestAltitude:
                 typeof storedAltitude === "number"
                   ? storedAltitude
@@ -402,6 +460,10 @@ const Mod = () => {
     if (
       statusFilter === "suspended" && !currentUser.suspension
     ) {
+      return false;
+    }
+
+    if (statusFilter === "flagged" && !isFlagged(currentUser)) {
       return false;
     }
 
@@ -990,6 +1052,7 @@ const Mod = () => {
                       <div className="flex flex-wrap gap-1">
                         <StatusBadge user={currentUser} />
                         <RoleBadge user={currentUser} />
+                        <FlagBadge user={currentUser} />
                       </div>
                     </td>
 
@@ -1075,6 +1138,7 @@ const Mod = () => {
                 <div className="flex items-center gap-2 pt-2">
                   <StatusBadge user={selectedUser} />
                   <RoleBadge user={selectedUser} />
+                  <FlagBadge user={selectedUser} />
 
                   <span className="truncate text-xs text-muted-foreground">
                     {selectedUser.uid}
@@ -1125,6 +1189,18 @@ const Mod = () => {
                     </dd>
                   </div>
                 </dl>
+
+                {isFlagged(selectedUser) && (
+                  <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                      Flagged:
+                    </span>{" "}
+                    earned {selectedUser.fastestHourReads} article rewards
+                    within one hour, faster than readers normally do. This
+                    may be a script. Check before removing tokens or
+                    suspending.
+                  </p>
+                )}
               </section>
 
               <section className="mt-8 border-t border-border pt-6">

@@ -7,6 +7,7 @@ import {
 } from "react";
 import {
   onAuthStateChanged,
+  sendEmailVerification,
   signOut,
   type User,
 } from "firebase/auth";
@@ -42,6 +43,12 @@ export type ModeratorRole = "owner" | "moderator";
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
+  /**
+   * False for a password account that hasn't clicked its verification
+   * link yet. firestore.rules won't let it earn tokens until it has.
+   */
+  emailVerified: boolean;
+  sendVerificationEmail: () => Promise<void>;
   suspension: Suspension | null;
   /** The signed-in account's role, or null for a regular user. */
   moderatorRole: ModeratorRole | null;
@@ -407,6 +414,7 @@ export function AuthProvider({
 }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [suspension, setSuspension] =
     useState<Suspension | null>(null);
 
@@ -425,7 +433,13 @@ export function AuthProvider({
               await ensureUserProfile(currentUser);
               await ensureProfileEmail(currentUser);
               await ensureUsernameLoginEmail(currentUser);
-              await ensureSignupBonus(currentUser);
+
+              // Waits for a verified email (firestore.rules); the
+              // effect below grants it the moment they verify.
+              if (currentUser.emailVerified) {
+                await ensureSignupBonus(currentUser);
+              }
+
               await recordLastSeen(currentUser);
             }
           } catch (error) {
@@ -436,6 +450,7 @@ export function AuthProvider({
           } finally {
             if (active) {
               setUser(currentUser);
+              setEmailVerified(currentUser?.emailVerified ?? false);
               setLoading(false);
             }
           }
@@ -487,6 +502,70 @@ export function AuthProvider({
       },
     );
   }, [uid]);
+
+  /*
+   * Verifying means clicking a link in an email, usually in another tab,
+   * and nothing tells this one. So an unverified account rechecks each
+   * time the site comes back into focus. The ID token is refreshed too,
+   * because the rules read email_verified from the token, and an old
+   * token would go on saying "unverified" for up to an hour.
+   */
+  useEffect(() => {
+    if (!user || emailVerified) {
+      return;
+    }
+
+    let active = true;
+    let checking = false;
+
+    const checkVerification = async () => {
+      if (checking || document.visibilityState !== "visible") {
+        return;
+      }
+
+      checking = true;
+
+      try {
+        await user.reload();
+
+        if (!user.emailVerified || !active) {
+          return;
+        }
+
+        await user.getIdToken(true);
+
+        if (active) {
+          setEmailVerified(true);
+        }
+
+        if (!(await isSuspended(user))) {
+          await ensureSignupBonus(user);
+        }
+      } catch (error) {
+        console.error(
+          "Could not check email verification:",
+          error,
+        );
+      } finally {
+        checking = false;
+      }
+    };
+
+    window.addEventListener("focus", checkVerification);
+    document.addEventListener(
+      "visibilitychange",
+      checkVerification,
+    );
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", checkVerification);
+      document.removeEventListener(
+        "visibilitychange",
+        checkVerification,
+      );
+    };
+  }, [user, emailVerified]);
 
   useEffect(() => {
     if (!user || suspension) {
@@ -562,11 +641,19 @@ export function AuthProvider({
     await signOut(auth);
   }
 
+  async function sendVerificationEmail() {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
+        emailVerified,
+        sendVerificationEmail,
         suspension,
         moderatorRole,
         moderatorRoleLoading,

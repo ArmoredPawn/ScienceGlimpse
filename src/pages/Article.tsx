@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -7,12 +7,77 @@ import {
 } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Coins } from 'lucide-react';
+import { ArrowLeft, Coins, MailCheck } from 'lucide-react';
 import articles from '../data/articles.json';
 import highlightContentWithGlossary from '@/lib/glossary';
 import { useArticleReadingReward } from '@/hooks/useArticleReadingReward';
+import { useAuth } from '@/context/AuthContext';
+import { describeAuthError } from '@/lib/auth';
 
 const SITE_NAME = 'ScienceGlimpse';
+
+/*
+ * Shown in place of the reading timer to an account whose email isn't
+ * verified yet, since firestore.rules won't pay it. AuthContext notices
+ * the verification by itself when they come back to this tab.
+ */
+const VerifyEmailNotice = () => {
+  const { user, sendVerificationEmail } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSend = async () => {
+    setSending(true);
+    setError('');
+
+    try {
+      await sendVerificationEmail();
+      setSent(true);
+    } catch (sendError) {
+      console.error('Could not send the verification email:', sendError);
+      setError(describeAuthError(sendError));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-3">
+      <MailCheck className="mt-0.5 h-5 w-5 text-primary" />
+
+      <div>
+        <p className="font-medium">Verify your email to earn tokens</p>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Click the verification link sent to{' '}
+          {user?.email ?? 'your email address'}, then come back to this tab.
+        </p>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void handleSend()}
+          disabled={sending || sent}
+          className="mt-3"
+        >
+          {sent
+            ? 'Link sent — check your inbox'
+            : sending
+              ? 'Sending...'
+              : 'Send a new link'}
+        </Button>
+
+        {error && (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
 const SITE_URL = 'https://scienceglimpse.org';
 
 const updateMetaTag = (
@@ -66,10 +131,12 @@ const Article = () => {
   const {
     articleRef,
     rewarded,
+    waitingForCooldown,
     isActivelyReading,
     loading: readingLoading,
     errorMessage: readingError,
     signedIn,
+    emailVerified,
   } = useArticleReadingReward(
     article ? String(article.id) : null
   );
@@ -256,6 +323,8 @@ const Article = () => {
                 <p className="text-sm text-muted-foreground">
                   Loading reading progress...
                 </p>
+              ) : !emailVerified && !rewarded ? (
+                <VerifyEmailNotice />
               ) : rewarded ? (
                 <div
                   className="flex items-center gap-3"
@@ -292,9 +361,11 @@ const Article = () => {
                   </div>
 
                   <p className="mt-3 text-xs text-muted-foreground">
-                    {isActivelyReading
-                      ? 'Your active reading time is being counted.'
-                      : 'Reading is paused — return to the article and interact with the page.'}
+                    {!isActivelyReading
+                      ? 'Reading is paused — return to the article and interact with the page.'
+                      : waitingForCooldown
+                        ? 'Reading complete! Rewards arrive at most once every three minutes, so your tokens will be added shortly — keep reading.'
+                        : 'Your active reading time is being counted.'}
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">

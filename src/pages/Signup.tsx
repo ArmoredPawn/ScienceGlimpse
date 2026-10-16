@@ -5,6 +5,7 @@ import {
 } from "react";
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithPopup,
 } from "firebase/auth";
 import { Link, useNavigate } from "react-router-dom";
@@ -143,11 +144,22 @@ const Signup = () => {
        */
       setPreferredUsername(normalizedUsername);
 
-      await createUserWithEmailAndPassword(
+      const credential = await createUserWithEmailAndPassword(
         auth,
         email.trim(),
         password,
       );
+
+      // Tokens need a verified email (firestore.rules emailVerified).
+      // A failure here isn't fatal: article pages offer to resend it.
+      try {
+        await sendEmailVerification(credential.user);
+      } catch (verificationError) {
+        console.error(
+          "Could not send the verification email:",
+          verificationError,
+        );
+      }
 
       navigate("/profile");
     } catch (error) {
@@ -238,8 +250,8 @@ const Signup = () => {
             <span className="font-semibold text-foreground">
               Get {SIGNUP_BONUS_TOKENS} tokens
             </span>{" "}
-            the moment you sign up — then earn 10 more for every article
-            you read.
+            as soon as you verify your email — then earn 10 more for every
+            article you read.
           </p>
         </div>
 

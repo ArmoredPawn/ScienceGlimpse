@@ -4,6 +4,7 @@ import {
   getDoc,
   runTransaction,
   serverTimestamp,
+  type Timestamp,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
@@ -13,9 +14,21 @@ const HEARTBEAT_SECONDS = 15;
 const REWARD_SECONDS = 240;
 const IDLE_LIMIT_MS = 60_000;
 
+// Keep in step with the 180s in firestore.rules (rewardCooldown).
+const REWARD_COOLDOWN_MS = 180_000;
+
+// How long to wait before retrying a heartbeat Firestore refused.
+const RETRY_DELAY_MS = 15_000;
+
 interface HeartbeatResult {
   activeSeconds: number;
   rewarded: boolean;
+  /**
+   * Set when the article is finished but the account earned another
+   * reward under three minutes ago: when the rules will next allow one.
+   * Nothing was written in that case.
+   */
+  cooldownEndsAt: number | null;
 }
 
 async function recordReadingHeartbeat(
@@ -38,6 +51,14 @@ async function recordReadingHeartbeat(
     articleId,
   );
 
+  const cooldownReference = doc(
+    db,
+    "users",
+    userId,
+    "rewardCooldown",
+    "latest",
+  );
+
   return runTransaction(db, async (transaction) => {
     const progressSnapshot =
       await transaction.get(progressReference);
@@ -54,6 +75,7 @@ async function recordReadingHeartbeat(
       return {
         activeSeconds: HEARTBEAT_SECONDS,
         rewarded: false,
+        cooldownEndsAt: null,
       };
     }
 
@@ -70,6 +92,7 @@ async function recordReadingHeartbeat(
       return {
         activeSeconds: REWARD_SECONDS,
         rewarded: true,
+        cooldownEndsAt: null,
       };
     }
 
@@ -79,6 +102,35 @@ async function recordReadingHeartbeat(
     );
 
     const shouldReward = nextSeconds >= REWARD_SECONDS;
+
+    /*
+     * Rewards are limited to one every three minutes (firestore.rules
+     * claimsRewardCooldown). Checked here first so a finished article
+     * waits quietly instead of sending a write the rules would refuse.
+     */
+    if (shouldReward) {
+      const cooldownSnapshot =
+        await transaction.get(cooldownReference);
+
+      const lastRewardedAt = cooldownSnapshot.exists()
+        ? (
+            cooldownSnapshot.data().rewardedAt as
+              | Timestamp
+              | undefined
+          )?.toMillis?.()
+        : undefined;
+
+      if (
+        lastRewardedAt !== undefined &&
+        Date.now() < lastRewardedAt + REWARD_COOLDOWN_MS
+      ) {
+        return {
+          activeSeconds: currentSeconds,
+          rewarded: false,
+          cooldownEndsAt: lastRewardedAt + REWARD_COOLDOWN_MS,
+        };
+      }
+    }
 
     transaction.update(progressReference, {
       activeSeconds: nextSeconds,
@@ -94,11 +146,17 @@ async function recordReadingHeartbeat(
         type: "article_read",
         createdAt: serverTimestamp(),
       });
+
+      transaction.set(cooldownReference, {
+        articleId,
+        rewardedAt: serverTimestamp(),
+      });
     }
 
     return {
       activeSeconds: nextSeconds,
       rewarded: shouldReward,
+      cooldownEndsAt: null,
     };
   });
 }
@@ -106,7 +164,11 @@ async function recordReadingHeartbeat(
 export function useArticleReadingReward(
   articleId: string | null,
 ) {
-  const { user, loading: authLoading } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    emailVerified,
+  } = useAuth();
 
   const articleRef = useRef<HTMLElement | null>(null);
   const articleInViewRef = useRef(false);
@@ -114,9 +176,13 @@ export function useArticleReadingReward(
   const pendingSecondsRef = useRef(0);
   const confirmedSecondsRef = useRef(0);
   const sendingRef = useRef(false);
+  // No heartbeat is sent before this time (ms since epoch).
+  const retryAtRef = useRef(0);
 
   const [activeSeconds, setActiveSeconds] = useState(0);
   const [rewarded, setRewarded] = useState(false);
+  const [waitingForCooldown, setWaitingForCooldown] =
+    useState(false);
   const [isActivelyReading, setIsActivelyReading] =
     useState(false);
   const [loading, setLoading] = useState(true);
@@ -129,10 +195,12 @@ export function useArticleReadingReward(
     pendingSecondsRef.current = 0;
     confirmedSecondsRef.current = 0;
     sendingRef.current = false;
+    retryAtRef.current = 0;
     lastActivityRef.current = Date.now();
 
     setActiveSeconds(0);
     setRewarded(false);
+    setWaitingForCooldown(false);
     setIsActivelyReading(false);
     setErrorMessage("");
 
@@ -296,11 +364,14 @@ export function useArticleReadingReward(
 
   // Count active reading time and confirm it with Firestore.
   useEffect(() => {
+    // Unverified accounts can't earn (firestore.rules emailVerified), so
+    // their reading isn't tracked at all; the page asks them to verify.
     if (
       authLoading ||
       loading ||
       !userId ||
       !articleId ||
+      !emailVerified ||
       rewarded
     ) {
       setIsActivelyReading(false);
@@ -333,7 +404,8 @@ export function useArticleReadingReward(
 
       if (
         pendingSecondsRef.current <
-        HEARTBEAT_SECONDS
+          HEARTBEAT_SECONDS ||
+        Date.now() < retryAtRef.current
       ) {
         return;
       }
@@ -342,6 +414,16 @@ export function useArticleReadingReward(
 
       void recordReadingHeartbeat(userId, articleId)
         .then((result) => {
+          setErrorMessage("");
+
+          // Finished, but too soon after the last reward: keep the
+          // unsent seconds and try again once the cooldown is over.
+          if (result.cooldownEndsAt !== null) {
+            retryAtRef.current = result.cooldownEndsAt;
+            setWaitingForCooldown(true);
+            return;
+          }
+
           confirmedSecondsRef.current =
             result.activeSeconds;
 
@@ -349,13 +431,15 @@ export function useArticleReadingReward(
 
           setActiveSeconds(result.activeSeconds);
           setRewarded(result.rewarded);
-          setErrorMessage("");
+          setWaitingForCooldown(false);
         })
         .catch((error) => {
           console.error(
             "Could not record reading progress:",
             error,
           );
+
+          retryAtRef.current = Date.now() + RETRY_DELAY_MS;
 
           setErrorMessage(
             "Reading progress could not be saved yet. Retrying automatically.",
@@ -373,6 +457,7 @@ export function useArticleReadingReward(
   }, [
     articleId,
     authLoading,
+    emailVerified,
     loading,
     rewarded,
     userId,
@@ -382,9 +467,11 @@ export function useArticleReadingReward(
     articleRef,
     activeSeconds,
     rewarded,
+    waitingForCooldown,
     isActivelyReading,
     loading: authLoading || loading,
     errorMessage,
     signedIn: Boolean(user),
+    emailVerified,
   };
 }

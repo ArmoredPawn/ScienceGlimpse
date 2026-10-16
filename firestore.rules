@@ -109,14 +109,55 @@ service cloud.firestore {
      * heartbeat spacing slows one read to four minutes but hundreds can
      * run at once.
      *
-     * Restricting the ID to 1-100 caps what anyone can ever earn, because
+     * Restricting the ID to 1-1000 caps what anyone can ever earn, because
      * each article's reward document can only be created once. It needs
-     * no upkeep: nothing has to change here until article 101, and an ID
-     * outside the range simply never pays.
+     * no upkeep: nothing has to change here until article 1001, and an ID
+     * outside the range simply never pays. Invented IDs inside the range
+     * still pay, but only one every three minutes (claimsRewardCooldown),
+     * so farming them all would take a script days.
      */
     function validArticleId(articleId) {
-      return articleId.matches('^[1-9][0-9]?$')
-        || articleId == '100';
+      return articleId.matches('^[1-9][0-9]{0,2}$')
+        || articleId == '1000';
+    }
+
+    /*
+     * Every way of earning tokens needs a verified email, so a throwaway
+     * account can't collect the sign-up bonus and every article reward.
+     * Google sign-ins arrive verified; password accounts verify through
+     * the link Signup.tsx emails them (or the article page resends).
+     */
+    function emailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    /*
+     * Article rewards come at most one every three minutes. Each reward
+     * has to restamp users/{uid}/rewardCooldown/latest with its own
+     * article ID and the current time, and that document's rule (below)
+     * refuses a restamp sooner than three minutes after the last one.
+     *
+     * Without this a script could "read" every article in parallel and
+     * collect them all in four minutes. Now that takes about two hours,
+     * while someone reading one article after another never notices:
+     * finishing an article takes 3m45s of heartbeats on its own. The
+     * article ID ties the stamp to one reward, so a single write can't
+     * cover several.
+     */
+    function claimsRewardCooldown(userId, articleId) {
+      return getAfter(
+          /databases/$(database)/documents/users/$(userId)/rewardCooldown/latest
+        ).data.articleId == articleId
+        && getAfter(
+          /databases/$(database)/documents/users/$(userId)/rewardCooldown/latest
+        ).data.rewardedAt == request.time;
+    }
+
+    function validRewardCooldown(cooldown) {
+      return cooldown.keys().hasAll(['articleId', 'rewardedAt'])
+        && cooldown.keys().hasOnly(['articleId', 'rewardedAt'])
+        && cooldown.articleId is string
+        && cooldown.rewardedAt == request.time;
     }
 
     function validProgress(progress, articleId) {
@@ -363,6 +404,7 @@ service cloud.firestore {
 
       allow create: if isOwner(userId)
         && notSuspended(userId)
+        && emailVerified()
         && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && request.resource.data.activeSeconds == 15
@@ -374,6 +416,7 @@ service cloud.firestore {
       // while the bound was missing could still be driven to payout.
       allow update: if isOwner(userId)
         && notSuspended(userId)
+        && emailVerified()
         && validArticleId(articleId)
         && validProgress(request.resource.data, articleId)
         && resource.data.rewarded == false
@@ -406,11 +449,32 @@ service cloud.firestore {
             && request.resource.data.rewarded == true
             && request.resource.data.rewardedAt
               == request.time
+            && claimsRewardCooldown(userId, articleId)
             && getAfter(
               /databases/$(database)/documents/users/$(userId)/tokenLedger/$(articleId)
             ).data.amount == 10
           )
         );
+
+      allow delete: if false;
+    }
+
+    // When this account last earned an article reward — see
+    // claimsRewardCooldown above. Restamped by every reward, never
+    // deleted: deleting it would reset the clock.
+    match /users/{userId}/rewardCooldown/{cooldownId} {
+      allow get: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && notSuspended(userId)
+        && cooldownId == 'latest'
+        && validRewardCooldown(request.resource.data);
+
+      allow update: if isOwner(userId)
+        && notSuspended(userId)
+        && validRewardCooldown(request.resource.data)
+        && request.time
+          >= resource.data.rewardedAt + duration.value(180, 's');
 
       allow delete: if false;
     }
@@ -429,6 +493,7 @@ service cloud.firestore {
       // src/context/AuthContext.tsx.
       allow create: if isOwner(userId)
         && notSuspended(userId)
+        && emailVerified()
         && articleId == 'signup_bonus'
         && request.resource.data.keys().hasOnly([
           'amount',
@@ -443,7 +508,9 @@ service cloud.firestore {
       // OR'd with the one above.
       allow create: if isOwner(userId)
         && notSuspended(userId)
+        && emailVerified()
         && validArticleId(articleId)
+        && claimsRewardCooldown(userId, articleId)
         && request.resource.data.keys().hasAll([
           'articleId',
           'amount',

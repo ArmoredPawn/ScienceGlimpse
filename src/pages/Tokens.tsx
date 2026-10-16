@@ -72,8 +72,8 @@ const Tokens = () => {
                 </p>
 
                 <p className="mt-2 text-sm text-muted-foreground">
-                  This is a one-off welcome balance — it lands once, when
-                  your account is created.
+                  This is a one-off welcome balance — it lands once, as
+                  soon as your email is verified.
                 </p>
               </div>
 
@@ -92,9 +92,11 @@ const Tokens = () => {
 
                 <p className="mt-2 text-sm text-muted-foreground">
                   Every article you read earns {ARTICLE_READ_REWARD} tokens.
-                  You need to be logged in, and you need to actually read it —
-                  the timer counts four minutes of real reading and pauses when
-                  you switch tabs or stop interacting with the page.
+                  You need to be logged in with a verified email, and you need
+                  to actually read it — the timer counts four minutes of real
+                  reading and pauses when you switch tabs or stop interacting
+                  with the page. Rewards arrive at most once every three
+                  minutes.
                 </p>
 
                 <p className="mt-2 text-sm text-muted-foreground">

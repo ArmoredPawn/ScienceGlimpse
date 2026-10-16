@@ -37,9 +37,9 @@ const GameSection: React.FC = () => {
 
         <div className="flex-1 text-left">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-            PLAY{' '}
+            PLAY ON{' '}
             <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">
-              SCIENCEGLIMPSE SUMMIT
+              OUR ARCADE
             </span>
           </h2>
 

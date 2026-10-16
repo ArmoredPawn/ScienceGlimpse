@@ -73,7 +73,9 @@ const App = () => (
             element={<ForgotPassword />}
           />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/mod" element={<Mod />} />
+          <Route path="/admin" element={<Mod />} />
+          {/* The admin dashboard used to live at /mod. */}
+          <Route path="/mod" element={<Navigate to="/admin" replace />} />
           {/* <Route path="/creatureprofile" element={<CreatureProfile />} /> */}
           {/* <Route path="/creaturearticle" element={<CreatureArticle />} /> */}
           {/* <Route path="/debunkedarticles" element={<DebunkedArticles />} /> */}

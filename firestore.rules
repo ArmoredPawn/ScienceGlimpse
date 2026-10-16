@@ -67,7 +67,7 @@ service cloud.firestore {
 
     /*
      * email is optional and only ever the account's own Auth email,
-     * written by AuthContext on sign-in. It exists so the Mod dashboard
+     * written by AuthContext on sign-in. It exists so the Admin dashboard
      * can show and search by it: emails live in Firebase Authentication,
      * which no client can read for another user, so without a copy here
      * a moderator has no way to find somebody by email.
@@ -76,7 +76,7 @@ service cloud.firestore {
      * so this does not expose addresses to anyone else.
      *
      * lastSeenAt is optional too: AuthContext stamps it whenever the
-     * account opens the site, for the Mod dashboard's "Last seen" column.
+     * account opens the site, for the Admin dashboard's "Last seen" column.
      * Its value is checked where it is written (create and update below)
      * so it can only ever be the server's current time.
      */
@@ -149,7 +149,7 @@ service cloud.firestore {
 
     match /moderators/{moderatorId} {
       // Anyone may check their own status (AuthContext watches it to
-      // show the Mod link); moderators may see the whole team so the
+      // show the Admin link); moderators may see the whole team so the
       // dashboard can badge them.
       allow get: if (signedIn() && request.auth.uid == moderatorId)
         || isModerator();
@@ -176,7 +176,7 @@ service cloud.firestore {
         && resource.data.get('owner', false) != true;
     }
 
-    // Account suspensions, managed from the Mod dashboard. The owner may
+    // Account suspensions, managed from the Admin dashboard. The owner may
     // read their own (AuthContext watches it to show the "suspended"
     // screen); only moderators may list, suspend or restore. A suspension
     // is never edited in place — restoring deletes it, and suspending
@@ -301,7 +301,7 @@ service cloud.firestore {
     // not, can read it.
     //
     // Players publish their own entry. Moderators can also publish one
-    // for anybody (the Mod dashboard's "Sync leaderboard" button, which
+    // for anybody (the Admin dashboard's "Sync leaderboard" button, which
     // backfills records set before this collection existed). The
     // getAfter() check applies to BOTH: an entry must match that
     // player's real gameStats altitude, so not even a moderator can

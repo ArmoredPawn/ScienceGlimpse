@@ -10,7 +10,7 @@ export const SITE_URL = 'https://scienceglimpse.org';
  * the route stopped existing, so that URL served the 404 page at HTTP 200
  * — a soft 404 for every crawler that followed it.
  *
- * Deliberately excluded: /login, /profile and /mod (account-only pages,
+ * Deliberately excluded: /login, /profile and /admin (account-only pages,
  * nothing to index) and /article (the legacy redirect route).
  *
  * `prerender: false` keeps the home page out of the pre-render step —

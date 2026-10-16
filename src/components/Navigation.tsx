@@ -12,7 +12,7 @@ const Navigation: React.FC = () => {
   const { user, loading, suspension, moderatorRole } = useAuth();
   const accountPath = user ? "/profile" : "/login";
 
-  // Only moderators (and owners) see the Mod link. Hiding it is just
+  // Only moderators (and owners) see the Admin link. Hiding it is just
   // tidiness — Mod.tsx and firestore.rules are what keep others out.
   const showModLink = user !== null && moderatorRole !== null && !suspension;
 
@@ -65,9 +65,9 @@ const Navigation: React.FC = () => {
 
             {showModLink && (
               <Button asChild variant="outline" size="sm">
-                <Link to="/mod" className="flex items-center gap-2">
+                <Link to="/admin" className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4" />
-                  Mod
+                  Admin
                 </Link>
               </Button>
             )}
@@ -118,12 +118,12 @@ const Navigation: React.FC = () => {
 
               {showModLink && (
                 <Link
-                  to="/mod"
+                  to="/admin"
                   className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-primary transition-colors hover:bg-muted"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <ShieldCheck className="h-4 w-4" />
-                  Mod
+                  Admin
                 </Link>
               )}
 

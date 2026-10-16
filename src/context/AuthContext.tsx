@@ -212,7 +212,7 @@ async function ensureSignupBonus(user: User): Promise<void> {
     });
   } catch (error) {
     // Never allowed to break signing in — a missing bonus is recoverable
-    // on the next sign-in, or by hand from the Mod dashboard.
+    // on the next sign-in, or by hand from the Admin dashboard.
     console.error("Could not grant the signup bonus:", error);
   }
 }
@@ -221,7 +221,7 @@ async function ensureSignupBonus(user: User): Promise<void> {
  * Keeps a copy of the account's own email on its profile document.
  *
  * Emails live in Firebase Authentication, which a client can only read
- * for the signed-in user — never for anybody else. The Mod dashboard
+ * for the signed-in user — never for anybody else. The Admin dashboard
  * therefore has no way to display or search by email unless each account
  * records its own, which is what this does. users/{uid} is readable only
  * by its owner or a moderator, so nothing is exposed more widely.
@@ -264,7 +264,7 @@ async function ensureProfileEmail(user: User): Promise<void> {
 
 /*
  * Stamps the profile with when this account was last on the site, for
- * the Mod dashboard's "Last seen" column. Runs on every page load that
+ * the Admin dashboard's "Last seen" column. Runs on every page load that
  * restores a session, and again when a tab left open comes back into
  * view — throttled, so flicking between tabs isn't a write each time.
  * Like the email above, a refused write is only logged.
@@ -458,7 +458,7 @@ export function AuthProvider({
 
   /*
    * Watched live rather than read once, so a suspension or restore from
-   * the Mod dashboard reaches someone who is already on the site without
+   * the Admin dashboard reaches someone who is already on the site without
    * them having to reload.
    */
   const uid = user?.uid ?? null;
@@ -512,7 +512,7 @@ export function AuthProvider({
   }, [user, suspension]);
 
   /*
-   * Watched live like the suspension, so the Mod link appears (or
+   * Watched live like the suspension, so the Admin link appears (or
    * disappears) the moment an owner changes this account's role. Stored
    * with the uid it was read for, so a role from a previous account is
    * never shown, and the role counts as loading until this account's

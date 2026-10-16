@@ -10,7 +10,7 @@ interface SuspensionGateProps {
 
 /*
  * Replaces the whole site with a notice while the signed-in account is
- * suspended (suspensions/{uid}, set from the Mod dashboard). This is the
+ * suspended (suspensions/{uid}, set from the Admin dashboard). This is the
  * friendly half of a suspension; firestore.rules is the half that
  * actually stops a suspended account writing anything, so hiding the
  * site here is about telling the person why, not about security.
@@ -34,7 +34,7 @@ const SuspensionGate = ({ children }: SuspensionGateProps) => {
       </h1>
 
       <p className="mt-2 max-w-md text-muted-foreground">
-        A ScienceGlimpse moderator has suspended this account, so
+        A ScienceGlimpse admin has suspended this account, so
         you can't read for tokens, play ScienceGlimpse Summit or change your
         profile right now.
       </p>

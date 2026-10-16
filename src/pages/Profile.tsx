@@ -213,7 +213,7 @@ const Profile = () => {
           username: normalizedUsername,
           photoURL: user.photoURL ?? "",
           // A full set, so the stored email has to be carried over or
-          // renaming yourself would erase it from the Mod dashboard.
+          // renaming yourself would erase it from the Admin dashboard.
           ...(profileSnapshot.exists() &&
           typeof profileSnapshot.data().email === "string"
             ? { email: profileSnapshot.data().email }

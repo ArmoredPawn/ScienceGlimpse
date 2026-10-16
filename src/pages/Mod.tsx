@@ -146,7 +146,7 @@ const RoleBadge = ({ user }: { user: UserSummary }) =>
   ) : user.moderator ? (
     <Badge variant="outline" className="gap-1">
       <ShieldCheck className="h-3 w-3" />
-      Moderator
+      Admin
     </Badge>
   ) : null;
 
@@ -435,7 +435,7 @@ const Mod = () => {
       (currentUser) => currentUser.uid === uid,
     );
 
-    return match ? `@${match.username}` : "a moderator";
+    return match ? `@${match.username}` : "an admin";
   };
 
   const openUser = (uid: string) => {
@@ -624,7 +624,7 @@ const Mod = () => {
       });
 
       toast.success(
-        `@${selectedUser.username} is now a moderator.`,
+        `@${selectedUser.username} is now an admin.`,
       );
 
       await loadUsers();
@@ -632,7 +632,7 @@ const Mod = () => {
       console.error("Could not add moderator:", error);
 
       toast.error(
-        "They could not be made a moderator. Check the latest firestore.rules are published.",
+        "They could not be made an admin. Check the latest firestore.rules are published.",
       );
     } finally {
       setChangingRole(false);
@@ -650,14 +650,14 @@ const Mod = () => {
       await deleteDoc(doc(db, "moderators", selectedUser.uid));
 
       toast.success(
-        `@${selectedUser.username} is no longer a moderator.`,
+        `@${selectedUser.username} is no longer an admin.`,
       );
 
       await loadUsers();
     } catch (error) {
       console.error("Could not remove moderator:", error);
 
-      toast.error("Their moderator access could not be removed.");
+      toast.error("Their admin access could not be removed.");
     } finally {
       setChangingRole(false);
     }
@@ -750,7 +750,7 @@ const Mod = () => {
     return (
       <main className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">
-          Verifying moderator access...
+          Verifying admin access...
         </p>
       </main>
     );
@@ -771,7 +771,7 @@ const Mod = () => {
 
         <p className="mt-2 text-muted-foreground">
           This page is restricted to ScienceGlimpse
-          moderators.
+          admins.
         </p>
 
         <Button
@@ -799,13 +799,13 @@ const Mod = () => {
               <ShieldCheck className="h-7 w-7 text-primary" />
 
               <h1 className="text-3xl font-bold">
-                Moderator dashboard
+                Admin dashboard
               </h1>
             </div>
 
             <p className="mt-2 text-muted-foreground">
               {isSiteOwner
-                ? "Manage accounts, moderators, suspensions and token balances."
+                ? "Manage accounts, admins, suspensions and token balances."
                 : "Manage accounts, suspensions and token balances."}
             </p>
           </div>
@@ -1222,7 +1222,7 @@ const Mod = () => {
               {(isSiteOwner || selectedUser.moderator) && (
                 <section className="mt-8 border-t border-border pt-6">
                   <h3 className="text-sm font-semibold">
-                    Moderator access
+                    Admin access
                   </h3>
 
                   {selectedIsOwner ? (
@@ -1233,7 +1233,7 @@ const Mod = () => {
                   ) : selectedUser.moderator ? (
                     <div className="mt-3 grid gap-3">
                       <p className="text-sm text-muted-foreground">
-                        Moderator
+                        Admin
                         {selectedUser.moderator.addedAt &&
                           ` since ${selectedUser.moderator.addedAt.toLocaleDateString()}`}
                         {selectedUser.moderator.addedBy &&
@@ -1254,24 +1254,24 @@ const Mod = () => {
 
                           {changingRole
                             ? "Removing..."
-                            : "Remove moderator"}
+                            : "Remove admin"}
                         </Button>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Only the site owner can remove moderators.
+                          Only the site owner can remove admins.
                         </p>
                       )}
                     </div>
                   ) : selectedUser.suspension ? (
                     <p className="mt-3 text-sm text-muted-foreground">
-                      Restore this account before making them a
-                      moderator.
+                      Restore this account before making them an
+                      admin.
                     </p>
                   ) : (
                     <div className="mt-3 grid gap-3">
                       <p className="text-sm text-muted-foreground">
-                        Moderators can manage accounts, suspensions and
-                        tokens, but can't make other moderators.
+                        Admins can manage accounts, suspensions and
+                        tokens, but can't make other admins.
                       </p>
 
                       <Button
@@ -1283,7 +1283,7 @@ const Mod = () => {
 
                         {changingRole
                           ? "Saving..."
-                          : "Make moderator"}
+                          : "Make admin"}
                       </Button>
                     </div>
                   )}

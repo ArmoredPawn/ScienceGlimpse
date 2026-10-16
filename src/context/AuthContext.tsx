@@ -425,22 +425,17 @@ export function AuthProvider({
       auth,
       (currentUser) => {
         void (async () => {
+          let profileReady = false;
+
           try {
+            // The profile has to exist before pages see the user —
+            // Profile.tsx reads it once on load.
             if (
               currentUser &&
               !(await isSuspended(currentUser))
             ) {
               await ensureUserProfile(currentUser);
-              await ensureProfileEmail(currentUser);
-              await ensureUsernameLoginEmail(currentUser);
-
-              // Waits for a verified email (firestore.rules); the
-              // effect below grants it the moment they verify.
-              if (currentUser.emailVerified) {
-                await ensureSignupBonus(currentUser);
-              }
-
-              await recordLastSeen(currentUser);
+              profileReady = true;
             }
           } catch (error) {
             console.error(
@@ -453,6 +448,26 @@ export function AuthProvider({
               setEmailVerified(currentUser?.emailVerified ?? false);
               setLoading(false);
             }
+          }
+
+          /*
+           * Best-effort upkeep that no page waits on, so it runs after
+           * loading ends. Awaiting it used to hold back the Profile and
+           * Log in buttons: recordLastSeen's write waits for the server,
+           * so a slow or stalled Firestore connection kept them hidden
+           * indefinitely. Each step logs its own failures.
+           */
+          if (currentUser && profileReady) {
+            await ensureProfileEmail(currentUser);
+            await ensureUsernameLoginEmail(currentUser);
+
+            // Waits for a verified email (firestore.rules); the
+            // effect below grants it the moment they verify.
+            if (currentUser.emailVerified) {
+              await ensureSignupBonus(currentUser);
+            }
+
+            await recordLastSeen(currentUser);
           }
         })();
       },

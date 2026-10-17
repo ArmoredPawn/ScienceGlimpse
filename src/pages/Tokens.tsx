@@ -6,6 +6,7 @@ import {
   PenLine,
   Mountain,
   UserPlus,
+  Zap,
 } from 'lucide-react';
 
 import AnimatedBackground from '@/components/AnimatedBackground';
@@ -41,8 +42,8 @@ const Tokens = () => {
 
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Tokens are what you earn for being part of ScienceGlimpse —
-                reading science, and writing it. They are how you power your
-                climb in ScienceGlimpse Summit.
+                reading science, and writing it. They power the games in the
+                ScienceGlimpse Arcade.
               </p>
             </div>
 
@@ -143,23 +144,43 @@ const Tokens = () => {
               How to spend tokens
             </h2>
 
-            <div className="bg-card/60 backdrop-blur-sm border border-border rounded-xl p-6 mb-10">
-              <div className="flex items-center gap-3 mb-3">
-                <Mountain className="h-6 w-6 text-primary" />
+            <div className="grid gap-4 sm:grid-cols-2 mb-10">
+              <div className="bg-card/60 backdrop-blur-sm border border-border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Mountain className="h-6 w-6 text-primary" />
 
-                <p className="font-semibold text-foreground">
-                  ScienceGlimpse Summit
+                  <p className="font-semibold text-foreground">
+                    ScienceGlimpse Summit
+                  </p>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Jumping costs tokens. Every {JUMPS_PER_TOKEN} jumps spends{' '}
+                  {TOKENS_PER_CHARGE}{' '}
+                  {TOKENS_PER_CHARGE === 1 ? 'token' : 'tokens'}, so a longer
+                  climb costs more than a short one. Reading funds playing — run
+                  out of tokens and you will need to go read something to keep
+                  climbing.
                 </p>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                Jumping costs tokens. Every {JUMPS_PER_TOKEN} jumps spends{' '}
-                {TOKENS_PER_CHARGE}{' '}
-                {TOKENS_PER_CHARGE === 1 ? 'token' : 'tokens'}, so a longer
-                climb costs more than a short one. Reading funds playing — run
-                out of tokens and you will need to go read something to keep
-                climbing.
-              </p>
+              <div className="bg-card/60 backdrop-blur-sm border border-border rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Zap className="h-6 w-6 text-primary" />
+
+                  <p className="font-semibold text-foreground">
+                    ScienceGlimpse Quick Draw Ladder
+                  </p>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Every duel costs {TOKENS_PER_CHARGE}{' '}
+                  {TOKENS_PER_CHARGE === 1 ? 'token' : 'tokens'}. Tap the
+                  instant DRAW! flashes, five times, and beat the player just
+                  above you to climb the reaction-time ladder. Warm-up draws
+                  are free.
+                </p>
+              </div>
             </div>
 
             {/* Balance */}
@@ -188,7 +209,7 @@ const Tokens = () => {
               </Button>
 
               <Button asChild variant="cosmic" size="lg" className="flex-1">
-                <Link to="/science-summit">Play ScienceGlimpse Summit</Link>
+                <Link to="/arcade">Play in the Arcade</Link>
               </Button>
             </div>
           </div>

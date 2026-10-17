@@ -10,6 +10,13 @@ import { db } from "./firebase";
 export const JUMPS_PER_TOKEN = 10;
 export const TOKENS_PER_CHARGE = 1;
 
+/**
+ * Every users/{uid}/gameLedger entry is one TOKENS_PER_CHARGE spend, tagged
+ * with the game that spent it: a batch of Summit jumps, or one ScienceGlimpse
+ * Quick Draw Ladder duel. firestore.rules allows exactly these types.
+ */
+export type GameChargeType = "game_jump_batch" | "quick_draw_duel";
+
 function sumAmounts(docs: QueryDocumentSnapshot[]): number {
   return docs.reduce((total, currentDocument) => {
     const amount = currentDocument.data().amount;

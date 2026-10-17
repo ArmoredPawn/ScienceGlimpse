@@ -46,8 +46,10 @@ const GameSection: React.FC = () => {
           <p className="text-lg leading-relaxed text-gray-200 mt-6">
             Climb as high as you can in <b>ScienceGlimpse Summit</b>. Jump across
             floating platforms while lava rises steadily from below.
-            Power your climb with your real ScienceGlimpse tokens,
-            earned by reading articles or publishing new articles.
+            Or test your reflexes in <b>ScienceGlimpse Quick Draw
+            Ladder</b> and race up the leaderboard. Power every game with
+            your real ScienceGlimpse tokens, earned by reading articles or
+            publishing new articles.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-12">

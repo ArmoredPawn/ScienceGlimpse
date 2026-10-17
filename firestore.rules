@@ -188,6 +188,19 @@ service cloud.firestore {
         );
     }
 
+    /*
+     * A ScienceGlimpse Quick Draw Ladder time in milliseconds: the average
+     * of a duel's draws. Under 100 ms isn't a human reaction (the game
+     * counts it as a false start) and a draw nobody taps scores 1000, so
+     * no real duel can fall outside this. Keep both numbers in step with
+     * QUICK_DRAW_FASTEST_MS / QUICK_DRAW_SLOWEST_MS in src/lib/quickDraw.ts.
+     */
+    function validQuickDrawTime(time) {
+      return time is int
+        && time >= 100
+        && time <= 1000;
+    }
+
     match /moderators/{moderatorId} {
       // Anyone may check their own status (AuthContext watches it to
       // show the Admin link); moderators may see the whole team so the
@@ -367,6 +380,32 @@ service cloud.firestore {
 
       // Moderators remove a player's entry when suspending them; the
       // dashboard republishes it (through the rule above) on restore.
+      allow delete: if isModerator();
+    }
+
+    // Public ScienceGlimpse Quick Draw Ladder leaderboard: each player's
+    // username + best average reaction time (src/hooks/
+    // useQuickDrawLadder.ts). Works exactly like the Summit leaderboard
+    // above — an entry must match that player's real
+    // gameStats/quickDraw time, so nobody, moderators included, can
+    // publish a time that isn't on record.
+    match /quickDrawLeaderboard/{userId} {
+      allow get, list: if true;
+
+      allow create, update: if (isOwner(userId) || isModerator())
+        && notSuspended(userId)
+        && request.resource.data.keys().hasOnly([
+          'username',
+          'bestTime',
+          'updatedAt'
+        ])
+        && validUsername(request.resource.data.username)
+        && validQuickDrawTime(request.resource.data.bestTime)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.bestTime == getAfter(
+          /databases/$(database)/documents/users/$(userId)/gameStats/quickDraw
+        ).data.bestTime;
+
       allow delete: if isModerator();
     }
 
@@ -573,17 +612,19 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ScienceGlimpse Summit game energy ledger. Entries are immutable, exactly
-    // like tokenLedger above, and count toward a player's real token
-    // balance (see src/lib/tokens.ts, which sums tokenLedger +
-    // tokenAdjustments + gameLedger).
+    // Arcade game token ledger. Entries are immutable, exactly like
+    // tokenLedger above, and count toward a player's real token balance
+    // (see src/lib/tokens.ts, which sums tokenLedger + tokenAdjustments +
+    // gameLedger).
     //
-    // Jumping is the only thing that spends energy in this game (there
-    // is no in-game way to earn tokens back), so every entry is a fixed
-    // -1 charge for every 10 jumps. A negative amount only ever costs
-    // the player their own tokens, so this doesn't need the getAfter()
-    // cross-document validation tokenLedger uses above — there's no
-    // positive-amount case here to guard against.
+    // Games only ever spend tokens (there is no in-game way to earn them
+    // back), so every entry is a fixed -1 charge: one for every 10 jumps
+    // in ScienceGlimpse Summit ('game_jump_batch'), or one per
+    // ScienceGlimpse Quick Draw Ladder duel ('quick_draw_duel'). A
+    // negative amount only ever costs the player their own tokens, so
+    // this doesn't need the getAfter() cross-document validation
+    // tokenLedger uses above — there's no positive-amount case here to
+    // guard against.
     match /users/{userId}/gameLedger/{entryId} {
       allow get, list: if isOwner(userId)
         || isModerator();
@@ -596,15 +637,20 @@ service cloud.firestore {
           'createdAt'
         ])
         && request.resource.data.amount == -1
-        && request.resource.data.type == 'game_jump_batch'
+        && request.resource.data.type in [
+          'game_jump_batch',
+          'quick_draw_duel'
+        ]
         && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
     }
 
-    // ScienceGlimpse Summit best-altitude record, scoped to the account
-    // (src/hooks/useBestAltitude.ts). Purely a vanity stat with no
-    // currency behind it, so this only needs light shape validation —
+    // Per-account game records: ScienceGlimpse Summit's best altitude
+    // (src/hooks/useBestAltitude.ts) and, in gameStats/quickDraw,
+    // ScienceGlimpse Quick Draw Ladder's best time
+    // (src/hooks/useQuickDrawLadder.ts). Purely vanity stats with no
+    // currency behind them, so this only needs light shape validation —
     // unlike the token collections above, there's nothing to protect
     // against here beyond malformed data.
     match /users/{userId}/gameStats/{statId} {
@@ -613,13 +659,26 @@ service cloud.firestore {
 
       allow create, update: if isOwner(userId)
         && notSuspended(userId)
-        && request.resource.data.keys().hasOnly([
-          'bestAltitude',
-          'updatedAt'
-        ])
-        && request.resource.data.bestAltitude is int
-        && request.resource.data.bestAltitude >= 0
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && (
+          (
+            statId == 'quickDraw'
+            && request.resource.data.keys().hasOnly([
+              'bestTime',
+              'updatedAt'
+            ])
+            && validQuickDrawTime(request.resource.data.bestTime)
+          )
+          || (
+            statId != 'quickDraw'
+            && request.resource.data.keys().hasOnly([
+              'bestAltitude',
+              'updatedAt'
+            ])
+            && request.resource.data.bestAltitude is int
+            && request.resource.data.bestAltitude >= 0
+          )
+        );
 
       allow delete: if false;
     }

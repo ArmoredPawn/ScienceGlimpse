@@ -81,6 +81,18 @@ export const staticPages = [
       'The highest climbers in ScienceGlimpse Summit, ranked by best altitude reached.',
   },
   {
+    path: '/quick-draw-ladder',
+    title: 'ScienceGlimpse Quick Draw Ladder',
+    description:
+      'Test your reflexes in ScienceGlimpse Quick Draw Ladder. Tap the instant DRAW! flashes, beat the player above you and climb the reaction-time ladder.',
+  },
+  {
+    path: '/quick-draw-ladder/leaderboard',
+    title: 'ScienceGlimpse Quick Draw Ladder Leaderboard',
+    description:
+      'The fastest reflexes on ScienceGlimpse, ranked by best average reaction time in ScienceGlimpse Quick Draw Ladder.',
+  },
+  {
     path: '/donate',
     title: 'Donate',
     description:

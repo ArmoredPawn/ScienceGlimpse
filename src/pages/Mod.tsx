@@ -47,6 +47,10 @@ import {
 import { toast } from "../components/ui/sonner";
 import { db } from "../lib/firebase";
 import {
+  QUICK_DRAW_LEADERBOARD,
+  QUICK_DRAW_STAT_ID,
+} from "../lib/quickDraw";
+import {
   useAuth,
   type ModeratorRole,
 } from "../context/AuthContext";
@@ -92,6 +96,8 @@ interface UserSummary {
   /** The most article rewards earned within any one hour. */
   fastestHourReads: number;
   bestAltitude: number;
+  /** Best ScienceGlimpse Quick Draw Ladder time; null if they've never dueled. */
+  bestQuickDrawTime: number | null;
   /** suspensions/{uid}, or null for an account in good standing. */
   suspension: SuspensionSummary | null;
   /** moderators/{uid}, or null for a regular user. */
@@ -322,6 +328,7 @@ const Mod = () => {
               adjustmentSnapshot,
               gameLedgerSnapshot,
               gameStatsSnapshot,
+              quickDrawStatsSnapshot,
             ] = await Promise.all([
               getDocs(
                 collection(db, "users", uid, "tokenLedger"),
@@ -346,6 +353,15 @@ const Mod = () => {
                   "scienceSummit",
                 ),
               ),
+              getDoc(
+                doc(
+                  db,
+                  "users",
+                  uid,
+                  "gameStats",
+                  QUICK_DRAW_STAT_ID,
+                ),
+              ),
             ]);
 
             const automaticTokens = sumAmounts(
@@ -364,6 +380,10 @@ const Mod = () => {
             const storedAltitude = gameStatsSnapshot.exists()
               ? gameStatsSnapshot.data().bestAltitude
               : 0;
+
+            const storedQuickDrawTime = quickDrawStatsSnapshot.exists()
+              ? quickDrawStatsSnapshot.data().bestTime
+              : null;
 
             const storedUsername =
               typeof profile.username === "string"
@@ -412,6 +432,10 @@ const Mod = () => {
                 typeof storedAltitude === "number"
                   ? storedAltitude
                   : 0,
+              bestQuickDrawTime:
+                typeof storedQuickDrawTime === "number"
+                  ? storedQuickDrawTime
+                  : null,
               suspension: suspensions.get(uid) ?? null,
               moderator: moderators.get(uid) ?? null,
             };
@@ -566,8 +590,8 @@ const Mod = () => {
 
   /*
    * Suspending writes suspensions/{uid}, which firestore.rules checks on
-   * every write the player makes, and takes them off the public
-   * leaderboard in the same batch so the two never disagree.
+   * every write the player makes, and takes them off both public
+   * leaderboards in the same batch so the two never disagree.
    */
   const handleSuspend = async (
     event: FormEvent<HTMLFormElement>,
@@ -599,6 +623,7 @@ const Mod = () => {
       });
 
       batch.delete(doc(db, "leaderboard", selectedUser.uid));
+      batch.delete(doc(db, QUICK_DRAW_LEADERBOARD, selectedUser.uid));
 
       await batch.commit();
 
@@ -619,9 +644,9 @@ const Mod = () => {
 
   /*
    * Restoring deletes the suspension, then puts the player's best climb
-   * back on the leaderboard. That second write has to come after the
-   * first: the leaderboard rule refuses entries for a player who is
-   * still suspended.
+   * and best Quick Draw time back on the leaderboards. Those writes have
+   * to come after the first: the leaderboard rules refuse entries for a
+   * player who is still suspended.
    */
   const handleRestore = async () => {
     if (!selectedUser) {
@@ -658,6 +683,32 @@ const Mod = () => {
 
         toast.error(
           "Restored, but their leaderboard entry could not be republished. Use Sync leaderboard to retry.",
+        );
+      }
+    }
+
+    if (
+      selectedUser.publishableUsername !== null &&
+      selectedUser.bestQuickDrawTime !== null
+    ) {
+      try {
+        await setDoc(
+          doc(db, QUICK_DRAW_LEADERBOARD, selectedUser.uid),
+          {
+            username: selectedUser.publishableUsername,
+            bestTime: selectedUser.bestQuickDrawTime,
+            updatedAt: serverTimestamp(),
+          },
+        );
+      } catch (error) {
+        console.error(
+          "Could not republish Quick Draw ladder entry:",
+          error,
+        );
+
+        // The game republishes it itself the next time they open it.
+        toast.error(
+          "Restored, but their Quick Draw ladder entry could not be republished. It returns the next time they play.",
         );
       }
     }
@@ -1265,7 +1316,7 @@ const Mod = () => {
                       They'll see the reason below and won't be
                       able to earn tokens, play or edit their
                       profile until restored. Their leaderboard
-                      entry is hidden meanwhile.
+                      entries are hidden meanwhile.
                     </p>
 
                     <label>

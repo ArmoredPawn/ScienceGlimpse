@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Article from './pages/Article';
 import Classes from "./pages/Classes";
 import Leaderboard from "./pages/Leaderboard";
+import QuickDrawLeaderboard from "./pages/QuickDrawLeaderboard";
 import Arcade from "./pages/Arcade";
 import Tokens from "./pages/Tokens";
 import Login from "./pages/Login";
@@ -34,6 +35,7 @@ import Mod from "./pages/Mod";
 import AnalyticsTracker from "./AnalyticsTracker"
 import SuspensionGate from "./components/SuspensionGate";
 import { ScienceSummit } from "./games/ScienceGlimpse-Science-Summit/ScienceSummit";
+import { QuickDrawLadder } from "./games/ScienceGlimpse-Quick-Draw-Ladder/QuickDrawLadder";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,11 @@ const App = () => (
             element={<Navigate to="/science-summit" replace />}
           />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/quick-draw-ladder" element={<QuickDrawLadder />} />
+          <Route
+            path="/quick-draw-ladder/leaderboard"
+            element={<QuickDrawLeaderboard />}
+          />
           <Route path="/tokens" element={<Tokens />} />
           <Route path="/article/:slug" element={<Article />} />
           {/* Legacy /article?id=N links redirect to the slug URL. */}

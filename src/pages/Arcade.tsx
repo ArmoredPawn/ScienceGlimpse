@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import summitScreenshot from '@/assets/science-summit-gameplay.png';
+import quickDrawPreview from '@/assets/quick-draw-ladder-preview.svg';
 
 interface ArcadeGame {
   title: string;
@@ -37,6 +38,19 @@ const GAMES: ArcadeGame[] = [
       'Gameplay screenshot of ScienceGlimpse Summit, a vertical platformer',
     playPath: '/science-summit',
     leaderboardPath: '/leaderboard',
+  },
+  {
+    title: 'ScienceGlimpse Quick Draw Ladder',
+    description:
+      'Tap the instant DRAW! flashes — but watch out for fake-outs. ' +
+      'Five draws make one average time, and beating the player just ' +
+      'above you climbs the ladder. Each duel costs 1 ScienceGlimpse token.',
+    image: quickDrawPreview,
+    imageAlt:
+      'ScienceGlimpse Quick Draw Ladder: a green DRAW! signal beside a ' +
+      'reaction-time ladder',
+    playPath: '/quick-draw-ladder',
+    leaderboardPath: '/quick-draw-ladder/leaderboard',
   },
 ];
 

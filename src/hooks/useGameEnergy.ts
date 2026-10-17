@@ -6,15 +6,23 @@ import { useAuth } from "@/context/AuthContext";
 import {
   TOKENS_PER_CHARGE,
   subscribeToTokenBalance,
+  type GameChargeType,
 } from "@/lib/tokens";
 
 /**
- * Ties ScienceGlimpse Summit's in-game "energy" to a signed-in player's real
- * ScienceGlimpse token balance. Every JUMPS_PER_TOKEN jumps writes a
- * fixed -1 entry to users/{uid}/gameLedger, validated by firestore.rules
- * the same way the article-reading reward is validated.
+ * Ties a game's spending to a signed-in player's real ScienceGlimpse token
+ * balance. Each spendToken() writes a fixed -1 entry to
+ * users/{uid}/gameLedger, validated by firestore.rules the same way the
+ * article-reading reward is validated. ScienceGlimpse Summit spends one for
+ * every JUMPS_PER_TOKEN jumps; ScienceGlimpse Quick Draw Ladder spends one
+ * per duel.
+ *
+ * spendToken resolves true once Firestore has accepted the spend, for a
+ * game that needs the token paid before it starts.
  */
-export function useGameEnergy() {
+export function useGameEnergy(
+  chargeType: GameChargeType = "game_jump_batch",
+) {
   const { user } = useAuth();
   const userId = user?.uid ?? null;
 
@@ -39,19 +47,22 @@ export function useGameEnergy() {
     return unsubscribe;
   }, [userId]);
 
-  const spendToken = useCallback(() => {
+  const spendToken = useCallback((): Promise<boolean> => {
     if (!userId) {
-      return;
+      return Promise.resolve(false);
     }
 
-    void addDoc(collection(db, "users", userId, "gameLedger"), {
+    return addDoc(collection(db, "users", userId, "gameLedger"), {
       amount: -TOKENS_PER_CHARGE,
-      type: "game_jump_batch",
+      type: chargeType,
       createdAt: serverTimestamp(),
-    }).catch((error) => {
-      console.error("Could not record token spend:", error);
-    });
-  }, [userId]);
+    })
+      .then(() => true)
+      .catch((error) => {
+        console.error("Could not record token spend:", error);
+        return false;
+      });
+  }, [chargeType, userId]);
 
   return {
     signedIn: Boolean(userId),

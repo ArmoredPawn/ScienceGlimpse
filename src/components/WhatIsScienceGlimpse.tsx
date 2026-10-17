@@ -98,12 +98,16 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
         {showVideo && (
           <div className="flex-1 flex justify-center">
             <div className="w-80 h-[450px] rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(147,51,234,0.5)] border-4 border-purple-500/70">
+              {/* YouTube refuses to play an embed that arrives without a referrer
+                  ("Video player configuration error"), so pin the policy here
+                  rather than relying on whatever the page or host sets. */}
               <iframe
                 className="w-full h-full"
                 src="https://www.youtube.com/embed/GhQPjrM0t2Y"
                 title="ScienceGlimpse Shorts"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               ></iframe>
             </div>

@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 
 import Navigation from "../components/Navigation";
+import AddArticleDialog from "../components/AddArticleDialog";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -873,6 +874,12 @@ const Mod = () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <AddArticleDialog
+              users={users}
+              moderatorUid={user.uid}
+              onSaved={() => void loadUsers()}
+            />
+
             <Button
               type="button"
               variant="outline"

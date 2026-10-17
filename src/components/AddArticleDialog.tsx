@@ -1,5 +1,13 @@
-import { useMemo, useState, type FormEvent } from "react";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
+import {
+  Bytes,
   collection,
   doc,
   getDoc,
@@ -59,9 +67,105 @@ const EMPTY_FORM = {
   category: "",
   author: "",
   readTime: "5 min",
-  thumbnail: "",
   date: new Date().toISOString().slice(0, 10),
   references: "",
+};
+
+/** Longest edge, in pixels, an uploaded thumbnail is scaled down to. */
+const MAX_IMAGE_EDGE = 1600;
+
+/**
+ * The image is stored as a Firestore document, which can't exceed 1 MiB.
+ * Keep in step with the size check on articleImages in firestore.rules.
+ */
+const MAX_IMAGE_BYTES = 900_000;
+
+/** Where the build writes uploaded thumbnails (see fetch-articles.mjs). */
+const IMAGE_PATH_PREFIX = "/article-images/";
+
+interface ThumbnailUpload {
+  blob: Blob;
+  extension: "webp" | "jpg";
+  previewUrl: string;
+}
+
+const loadImage = (file: File): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error(`Could not decode ${file.name}.`));
+    };
+    image.src = url;
+  });
+
+const canvasToBlob = (
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number,
+): Promise<Blob | null> =>
+  new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+// Re-encode a picked image small enough to store in Firestore: scale the
+// longest edge down to MAX_IMAGE_EDGE, then lower quality and size until it
+// fits under MAX_IMAGE_BYTES.
+const compressImage = async (file: File): Promise<Blob> => {
+  const image = await loadImage(file);
+
+  // Some SVGs have no intrinsic size and would come out as a 1x1 image.
+  if (!image.naturalWidth || !image.naturalHeight) {
+    throw new Error(`${file.name} has no dimensions.`);
+  }
+
+  // Safari can't encode WebP and quietly returns a PNG instead, so fall back
+  // to JPEG there (on a white background, since JPEG has no transparency).
+  const probe = document.createElement("canvas");
+  probe.width = probe.height = 1;
+  const type = probe.toDataURL("image/webp").startsWith("data:image/webp")
+    ? "image/webp"
+    : "image/jpeg";
+
+  let scale = Math.min(
+    1,
+    MAX_IMAGE_EDGE / Math.max(image.naturalWidth, image.naturalHeight),
+  );
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Canvas is unavailable.");
+    }
+
+    if (type === "image/jpeg") {
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    for (const quality of [0.85, 0.7]) {
+      const blob = await canvasToBlob(canvas, type, quality);
+
+      if (blob && blob.size <= MAX_IMAGE_BYTES) {
+        return blob;
+      }
+    }
+
+    scale *= 0.75;
+  }
+
+  throw new Error(`${file.name} is too large even after resizing.`);
 };
 
 // Turn a title into a URL-safe slug: lowercase, non-alphanumerics to hyphens,
@@ -87,7 +191,20 @@ const AddArticleDialog = ({
   const [hasAccount, setHasAccount] = useState(false);
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [thumbnail, setThumbnail] = useState<ThumbnailUpload | null>(null);
+  const [preparingImage, setPreparingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // Free each preview once it's replaced, removed or the form unmounts.
+  useEffect(
+    () => () => {
+      if (thumbnail) {
+        URL.revokeObjectURL(thumbnail.previewUrl);
+      }
+    },
+    [thumbnail],
+  );
 
   // Resolve valid usernames to uids once, for the author lookup.
   const usernameToUid = useMemo(() => {
@@ -115,6 +232,44 @@ const AddArticleDialog = ({
     }));
   };
 
+  const clearThumbnail = () => {
+    setThumbnail(null);
+
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = "";
+    }
+  };
+
+  const handleThumbnailChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    // Cancelling the file picker clears the input, so clear the upload too.
+    if (!file) {
+      clearThumbnail();
+      return;
+    }
+
+    setPreparingImage(true);
+
+    try {
+      const blob = await compressImage(file);
+
+      setThumbnail({
+        blob,
+        extension: blob.type === "image/webp" ? "webp" : "jpg",
+        previewUrl: URL.createObjectURL(blob),
+      });
+    } catch (error) {
+      console.error("Could not prepare the thumbnail:", error);
+      toast.error("That image couldn't be used. Try a JPEG, PNG or WebP.");
+      clearThumbnail();
+    } finally {
+      setPreparingImage(false);
+    }
+  };
+
   const resetForm = () => {
     setForm({
       ...EMPTY_FORM,
@@ -124,11 +279,14 @@ const AddArticleDialog = ({
     setHasAccount(false);
     setUsername("");
     setUsernameError("");
+    setThumbnail(null);
   };
 
   const handleOpenChange = (next: boolean) => {
-    // Don't let an accidental click-away discard a half-written article.
-    if (!next && submitting) {
+    // Don't let an accidental click-away discard a half-written article, or
+    // close while an image is still being prepared (it would land in the
+    // next, empty form).
+    if (!next && (submitting || preparingImage)) {
       return;
     }
 
@@ -220,6 +378,10 @@ const AddArticleDialog = ({
         : (highest.docs[0].data().legacyId as number | undefined) ?? 0;
       const nextId = highestId + 1;
 
+      const thumbnailBytes = thumbnail
+        ? new Uint8Array(await thumbnail.blob.arrayBuffer())
+        : null;
+
       const batch = writeBatch(db);
 
       batch.set(articleRef, {
@@ -230,7 +392,9 @@ const AddArticleDialog = ({
         category: categories,
         author,
         readTime: form.readTime.trim() || "5 min",
-        thumbnail: form.thumbnail.trim(),
+        thumbnail: thumbnail
+          ? `${IMAGE_PATH_PREFIX}${slug}.${thumbnail.extension}`
+          : "",
         date: form.date,
         references,
         legacyId: nextId,
@@ -241,6 +405,17 @@ const AddArticleDialog = ({
         updatedAt: serverTimestamp(),
         publishedAt: serverTimestamp(),
       });
+
+      // The image is kept in Firestore, and the build writes it out as a
+      // static file at the thumbnail path above.
+      if (thumbnail && thumbnailBytes) {
+        batch.set(doc(db, "articleImages", slug), {
+          data: Bytes.fromUint8Array(thumbnailBytes),
+          contentType: thumbnail.blob.type,
+          createdBy: moderatorUid,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       // Reward the author's account in the same atomic write, so tokens are
       // only ever granted alongside a genuinely-created article.
@@ -390,13 +565,54 @@ const AddArticleDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="article-thumbnail">Thumbnail URL</Label>
+            <Label htmlFor="article-thumbnail">Thumbnail image</Label>
             <Input
               id="article-thumbnail"
-              value={form.thumbnail}
-              onChange={(event) => update("thumbnail", event.target.value)}
-              placeholder="https://images.scienceglimpse.org/image1.png"
+              ref={thumbnailInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              disabled={preparingImage || submitting}
             />
+
+            {preparingImage && (
+              <p className="flex items-center text-xs text-muted-foreground">
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                Preparing image...
+              </p>
+            )}
+
+            {thumbnail && (
+              <>
+                {/* Same crop as the article cards and the article header. */}
+                <div className="aspect-video overflow-hidden rounded-lg border border-border bg-muted">
+                  <img
+                    src={thumbnail.previewUrl}
+                    alt="Thumbnail preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(thumbnail.blob.size / 1024)} KB after resizing
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearThumbnail}
+                    disabled={submitting}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Shown on article cards and at the top of the article. Large
+              images are resized automatically.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -472,7 +688,7 @@ const AddArticleDialog = ({
               Cancel
             </Button>
 
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting || preparingImage}>
               {submitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}

@@ -749,5 +749,53 @@ service cloud.firestore {
       // accident from a submitter's account.
       allow delete: if isModerator();
     }
+
+    /*
+     * Thumbnails uploaded from the Admin dashboard, one per article, keyed
+     * by the article's slug. They live here rather than in Cloud Storage
+     * because Storage needs the paid Blaze plan. Nobody views them from
+     * Firestore: scripts/fetch-articles.mjs writes each one out as a static
+     * file at build time, so like articles they're public only once the
+     * article is published.
+     *
+     * The 900000-byte cap keeps the document under Firestore's 1 MiB limit;
+     * keep it in step with MAX_IMAGE_BYTES in AddArticleDialog.tsx.
+     */
+    match /articleImages/{slug} {
+      allow get: if isModerator()
+        || (
+          exists(/databases/$(database)/documents/articles/$(slug))
+          && get(
+            /databases/$(database)/documents/articles/$(slug)
+          ).data.status == 'published'
+        );
+
+      allow list: if isModerator();
+
+      // Written alongside its article, so an image never exists on its own.
+      // Update covers a slug reused after its article was deleted.
+      allow create, update: if isModerator()
+        && existsAfter(/databases/$(database)/documents/articles/$(slug))
+        && request.resource.data.keys().hasAll([
+          'data',
+          'contentType',
+          'createdBy',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'data',
+          'contentType',
+          'createdBy',
+          'createdAt'
+        ])
+        && request.resource.data.data is bytes
+        && request.resource.data.data.size() > 0
+        && request.resource.data.data.size() <= 900000
+        && request.resource.data.contentType in ['image/webp', 'image/jpeg']
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow delete: if isModerator();
+    }
   }
 }

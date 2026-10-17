@@ -9,6 +9,8 @@ import {
   where,
   limit,
   getDocs,
+  doc,
+  getDoc,
 } from 'firebase/firestore';
 
 /*
@@ -37,6 +39,12 @@ const firebaseConfig = {
 };
 
 const outputPath = path.resolve('src/data/articles.json');
+
+// Thumbnails uploaded from the Admin dashboard are stored in Firestore
+// (articleImages/{slug}) and point at this folder; Vite copies public/ into
+// the build, so they're served from the site itself.
+const imagesDir = path.resolve('public/article-images');
+const IMAGE_PATH_PREFIX = '/article-images/';
 
 // Reduce a Firestore document to the exact shape the app consumes, so the
 // generated file is a drop-in replacement for the hand-written one.
@@ -89,10 +97,42 @@ if (missingSlug) {
   );
 }
 
+// Rebuilt from scratch each time so a deleted article's image doesn't linger.
+// A missing image fails the build rather than shipping a broken thumbnail.
+const uploaded = articles.filter((article) =>
+  article.thumbnail.startsWith(IMAGE_PATH_PREFIX)
+);
+
+const images = await Promise.all(
+  uploaded.map(async (article) => {
+    const image = await getDoc(doc(db, 'articleImages', article.slug));
+
+    if (!image.exists()) {
+      throw new Error(
+        `Article "${article.slug}" uses ${article.thumbnail}, but ` +
+          `articleImages/${article.slug} doesn't exist in Firestore.`
+      );
+    }
+
+    return {
+      fileName: path.basename(article.thumbnail),
+      bytes: image.data().data.toUint8Array(),
+    };
+  })
+);
+
+fs.rmSync(imagesDir, { recursive: true, force: true });
+fs.mkdirSync(imagesDir, { recursive: true });
+
+for (const { fileName, bytes } of images) {
+  fs.writeFileSync(path.join(imagesDir, fileName), bytes);
+}
+
 fs.writeFileSync(outputPath, `${JSON.stringify(articles, null, 2)}\n`);
 
 console.log(
-  `Fetched ${articles.length} published articles into src/data/articles.json.`
+  `Fetched ${articles.length} published articles into src/data/articles.json` +
+    ` and ${images.length} uploaded thumbnails into public/article-images.`
 );
 
 // The client SDK keeps a connection open; exit so the build step doesn't hang.

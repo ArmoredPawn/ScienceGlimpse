@@ -158,7 +158,7 @@ const AddArticleDialog = ({
 
     if (!title || !slug || !excerpt || !content || !author) {
       toast.error(
-        "Title, slug, excerpt, content and author are all required.",
+        "Title, URL, excerpt, content and author are all required.",
       );
       return;
     }
@@ -203,7 +203,7 @@ const AddArticleDialog = ({
 
       if (existing.exists()) {
         toast.error(
-          `An article already uses the slug "${slug}". Choose another.`,
+          `An article already uses the URL "${slug}". Choose another.`,
         );
         setSubmitting(false);
         return;
@@ -308,7 +308,7 @@ const AddArticleDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="article-slug">Slug</Label>
+            <Label htmlFor="article-slug">URL</Label>
             <Input
               id="article-slug"
               value={form.slug}

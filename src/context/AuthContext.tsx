@@ -41,8 +41,17 @@ export interface Suspension {
 export type ModeratorRole = "owner" | "moderator";
 
 interface AuthContextValue {
+  /** Set only once the account's profile document exists. */
   user: User | null;
   loading: boolean;
+  /**
+   * For the nav bar only, which just has to pick Profile or Log in.
+   * Firebase's answer once it has one, ahead of `user` (which waits on
+   * Firestore); until then, what this browser saw last visit.
+   */
+  signedIn: boolean;
+  /** Like signedIn: moderatorRole, or last visit's while it loads. */
+  likelyModerator: boolean;
   /**
    * False for a password account that hasn't clicked its verification
    * link yet. firestore.rules won't let it earn tokens until it has.
@@ -301,6 +310,43 @@ async function recordLastSeen(user: User): Promise<void> {
   }
 }
 
+/*
+ * Firebase only reports a returning account after checking it with the
+ * server (and on phones and Safari, after loading Google's sign-in iframe
+ * too), which can take seconds. Remembering last visit's answer lets the
+ * nav bar show the right buttons straight away. It's only ever a guess for
+ * the nav bar: Firebase's answer replaces it, and nothing else reads it.
+ */
+const ACCOUNT_HINT_KEY = "accountHint";
+
+interface AccountHint {
+  signedIn: boolean;
+  moderator: boolean;
+}
+
+function readAccountHint(): AccountHint {
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(ACCOUNT_HINT_KEY) ?? "null",
+    );
+
+    return {
+      signedIn: stored?.signedIn === true,
+      moderator: stored?.moderator === true,
+    };
+  } catch {
+    return { signedIn: false, moderator: false };
+  }
+}
+
+function writeAccountHint(hint: AccountHint): void {
+  try {
+    localStorage.setItem(ACCOUNT_HINT_KEY, JSON.stringify(hint));
+  } catch {
+    // Storage blocked: the nav bar just waits for Firebase.
+  }
+}
+
 function toSuspension(
   data: Record<string, unknown>,
 ): Suspension {
@@ -341,6 +387,13 @@ async function ensureUserProfile(user: User): Promise<void> {
     : null;
 
   preferredUsername = null;
+
+  // Almost every sign-in is a returning account. This read settles that
+  // in one round trip; the transaction below takes two (its read, then a
+  // commit verifying it), so it's kept for actually creating a profile.
+  if ((await getDoc(profileReference)).exists()) {
+    return;
+  }
 
   const baseUsername =
     chosenUsername && chosenUsername.length >= 3
@@ -418,12 +471,22 @@ export function AuthProvider({
   const [suspension, setSuspension] =
     useState<Suspension | null>(null);
 
+  // The signed-in uid straight from Firebase Auth (null when signed out,
+  // undefined until it has answered), ahead of the Firestore setup below.
+  const [sessionUid, setSessionUid] = useState<
+    string | null | undefined
+  >(undefined);
+
+  const [accountHint] = useState(readAccountHint);
+
   useEffect(() => {
     let active = true;
 
     const unsubscribe = onAuthStateChanged(
       auth,
       (currentUser) => {
+        setSessionUid(currentUser?.uid ?? null);
+
         void (async () => {
           let profileReady = false;
 
@@ -475,6 +538,7 @@ export function AuthProvider({
         console.error("Authentication error:", error);
 
         if (active) {
+          setSessionUid(null);
           setLoading(false);
         }
       },
@@ -490,8 +554,12 @@ export function AuthProvider({
    * Watched live rather than read once, so a suspension or restore from
    * the Admin dashboard reaches someone who is already on the site without
    * them having to reload.
+   *
+   * Keyed on the session rather than `user`, so this and the moderator
+   * watch below start alongside the profile setup instead of after it —
+   * otherwise the Admin link waits on every Firestore step before it.
    */
-  const uid = user?.uid ?? null;
+  const uid = sessionUid ?? null;
 
   useEffect(() => {
     if (!uid) {
@@ -652,6 +720,25 @@ export function AuthProvider({
       ? moderatorState.role
       : null;
 
+  const sessionKnown = sessionUid !== undefined;
+
+  const likelyModerator =
+    !sessionKnown || moderatorRoleLoading
+      ? accountHint.moderator
+      : moderatorRole !== null;
+
+  // Saved once Firebase (and, if signed in, the role) has answered.
+  useEffect(() => {
+    if (sessionUid === null) {
+      writeAccountHint({ signedIn: false, moderator: false });
+    } else if (sessionUid !== undefined && !moderatorRoleLoading) {
+      writeAccountHint({
+        signedIn: true,
+        moderator: moderatorRole !== null,
+      });
+    }
+  }, [sessionUid, moderatorRoleLoading, moderatorRole]);
+
   async function logout() {
     await signOut(auth);
   }
@@ -667,6 +754,10 @@ export function AuthProvider({
       value={{
         user,
         loading,
+        signedIn: sessionKnown
+          ? sessionUid !== null
+          : accountHint.signedIn,
+        likelyModerator,
         emailVerified,
         sendVerificationEmail,
         suspension,

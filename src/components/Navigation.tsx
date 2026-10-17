@@ -9,12 +9,15 @@ import { useAuth } from "../context/AuthContext";
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, loading, suspension, moderatorRole } = useAuth();
-  const accountPath = user ? "/profile" : "/login";
+  // signedIn rather than user/loading: those wait on Firestore, and the
+  // buttons only need to know whether anyone is signed in. It's shown
+  // from the first render, using last visit's answer until Firebase's.
+  const { signedIn, suspension, likelyModerator } = useAuth();
+  const accountPath = signedIn ? "/profile" : "/login";
 
   // Only moderators (and owners) see the Admin link. Hiding it is just
   // tidiness — Mod.tsx and firestore.rules are what keep others out.
-  const showModLink = user !== null && moderatorRole !== null && !suspension;
+  const showModLink = signedIn && likelyModerator && !suspension;
 
   const navItems = [
     { label: "Home", to: "/" },
@@ -72,15 +75,13 @@ const Navigation: React.FC = () => {
               </Button>
             )}
 
-            {!loading && (
-              <Button asChild variant={user ? "outline" : "default"} size="sm">
-                <Link to={accountPath} className="flex items-center gap-2">
-                  <UserRound className="h-4 w-4" />
+            <Button asChild variant={signedIn ? "outline" : "default"} size="sm">
+              <Link to={accountPath} className="flex items-center gap-2">
+                <UserRound className="h-4 w-4" />
 
-                  {user ? "Profile" : "Log in"}
-                </Link>
-              </Button>
-            )}
+                {signedIn ? "Profile" : "Log in"}
+              </Link>
+            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -127,17 +128,15 @@ const Navigation: React.FC = () => {
                 </Link>
               )}
 
-              {!loading && (
-                <Link
-                  to={accountPath}
-                  className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-primary transition-colors hover:bg-muted"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <UserRound className="h-4 w-4" />
+              <Link
+                to={accountPath}
+                className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-primary transition-colors hover:bg-muted"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <UserRound className="h-4 w-4" />
 
-                  {user ? "Profile" : "Log in"}
-                </Link>
-              )}
+                {signedIn ? "Profile" : "Log in"}
+              </Link>
 
               <div className="mt-3 border-t border-border pt-3">
                 <div className="flex items-center justify-between">

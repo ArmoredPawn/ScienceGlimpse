@@ -623,5 +623,72 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    /*
+     * Articles live in Firestore so the Admin dashboard and Submission
+     * flow can manage them instead of hand-editing a JSON file. The public
+     * site and the build-time snapshot read only published articles; drafts
+     * stay private to moderators and the person who submitted them.
+     *
+     * A document's ID is its slug. Writers cannot self-publish: a submitter
+     * may only create/edit their own drafts, and only a moderator may set
+     * status to 'published' or edit a live article.
+     */
+    function validArticle(a) {
+      return a.keys().hasAll([
+          'slug', 'title', 'excerpt', 'content',
+          'category', 'author', 'status', 'createdBy'
+        ])
+        && a.slug is string
+        && a.title is string && a.title.size() > 0 && a.title.size() <= 200
+        && a.excerpt is string && a.excerpt.size() <= 500
+        && a.content is string && a.content.size() <= 900000
+        && a.category is list
+        && a.author is string
+        && a.status in ['draft', 'in_review', 'published']
+        && a.createdBy is string;
+    }
+
+    match /articles/{slug} {
+      // Published articles are world-readable (the site is public and
+      // prerendered); moderators and the submitter can see their drafts.
+      allow get: if resource.data.status == 'published'
+        || isModerator()
+        || (signedIn() && resource.data.createdBy == request.auth.uid);
+
+      // Public queries must stay within published articles; moderators may
+      // list everything so the dashboard can show drafts awaiting review.
+      allow list: if isModerator()
+        || (request.query.limit <= 1000
+            && resource.data.status == 'published');
+
+      // A verified signed-in user may submit a draft under their own uid;
+      // a moderator may create an already-published article directly.
+      allow create: if validArticle(request.resource.data)
+        && request.resource.data.slug == slug
+        && (
+          (signedIn() && emailVerified() && notSuspended(request.auth.uid)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.status in ['draft', 'in_review'])
+          || isModerator()
+        );
+
+      // Submitters may edit their own drafts but cannot publish or reassign
+      // ownership; moderators may edit anything, including publishing.
+      allow update: if validArticle(request.resource.data)
+        && request.resource.data.slug == slug
+        && (
+          isModerator()
+          || (signedIn()
+            && resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdBy == resource.data.createdBy
+            && resource.data.status != 'published'
+            && request.resource.data.status in ['draft', 'in_review'])
+        );
+
+      // Only moderators can delete, so published history can't vanish by
+      // accident from a submitter's account.
+      allow delete: if isModerator();
+    }
   }
 }

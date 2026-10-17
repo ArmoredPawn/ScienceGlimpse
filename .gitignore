@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+# Firebase service-account keys — full admin access, never commit these.
+serviceAccount*.json
+*-firebase-adminsdk-*.json
 .DS_Store
 npm-debug.log
 yarn-debug.log

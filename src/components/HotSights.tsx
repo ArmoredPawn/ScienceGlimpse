@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Heart, X, Clock, User } from 'lucide-react';
-import articles from '../data/articles.json';
+import articles from '../data/article-summaries.json';
 
 const HotSights = () => {
   const [preference, setPreference] = useState<'like' | 'dislike' | null>(null);

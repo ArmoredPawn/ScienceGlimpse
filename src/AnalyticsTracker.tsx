@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-import articles from "./data/articles.json";
+import articles from "./data/article-summaries.json";
 
 export default function AnalyticsTracker() {
   const location = useLocation();

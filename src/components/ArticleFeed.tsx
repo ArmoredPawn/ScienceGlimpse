@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import articles from '../data/articles.json';
+import articles from '../data/article-summaries.json';
 import { Button } from './ui/button';
 import { Clock, User, ArrowRight } from 'lucide-react';
 

@@ -24,6 +24,27 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
   ].filter(Boolean), // Filters out `false` if componentTagger is not used in production
 
+  build: {
+    rollupOptions: {
+      output: {
+        // Firebase and React in files of their own. They change far less
+        // often than the site, so after a deploy returning visitors still
+        // have them cached and download only the site's own code again.
+        manualChunks(id) {
+          if (/[\\/]node_modules[\\/](firebase|@firebase|re2js|idb)[\\/]/.test(id)) {
+            return "firebase";
+          }
+
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|@remix-run[\\/]router)[\\/]/.test(id)
+          ) {
+            return "react";
+          }
+        },
+      },
+    },
+  },
+
   // Path aliases for easier imports
   resolve: {
     alias: {

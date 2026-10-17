@@ -40,6 +40,12 @@ const firebaseConfig = {
 
 const outputPath = path.resolve('src/data/articles.json');
 
+// The same list without each article's body. Everything that only lists
+// articles (the home page, the GlimpseArticles page, analytics) imports
+// this instead, so the full text — most of the file — isn't in the bundle
+// every visitor downloads. Only the article page needs it.
+const summariesPath = path.resolve('src/data/article-summaries.json');
+
 // Thumbnails uploaded from the Admin dashboard are stored in Firestore
 // (articleImages/{slug}) and point at this folder; Vite copies public/ into
 // the build, so they're served from the site itself.
@@ -130,9 +136,13 @@ for (const { fileName, bytes } of images) {
 
 fs.writeFileSync(outputPath, `${JSON.stringify(articles, null, 2)}\n`);
 
+const summaries = articles.map(({ content, ...summary }) => summary);
+fs.writeFileSync(summariesPath, `${JSON.stringify(summaries, null, 2)}\n`);
+
 console.log(
   `Fetched ${articles.length} published articles into src/data/articles.json` +
-    ` and ${images.length} uploaded thumbnails into public/article-images.`
+    ` (and article-summaries.json) and ${images.length} uploaded thumbnails` +
+    ` into public/article-images.`
 );
 
 // The client SDK keeps a connection open; exit so the build step doesn't hang.

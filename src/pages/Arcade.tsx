@@ -37,7 +37,7 @@ const GAMES: ArcadeGame[] = [
     imageAlt:
       'Gameplay screenshot of ScienceGlimpse Summit, a vertical platformer',
     playPath: '/science-summit',
-    leaderboardPath: '/leaderboard',
+    leaderboardPath: '/science-summit/leaderboard',
   },
   {
     title: 'ScienceGlimpse Quick Draw Ladder',

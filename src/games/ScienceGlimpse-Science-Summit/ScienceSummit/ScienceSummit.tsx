@@ -2086,7 +2086,7 @@ export default function ScienceSummit() {
             </Link>
 
             <Link
-              to="/leaderboard"
+              to="/science-summit/leaderboard"
               className="sg-note"
               style={{ display: "block", marginTop: 14 }}
             >
@@ -2128,7 +2128,7 @@ export default function ScienceSummit() {
           }}
         >
           <Link
-            to="/leaderboard"
+            to="/science-summit/leaderboard"
             className="sg-secondary-button"
             style={{ textDecoration: "none" }}
           >

@@ -75,7 +75,7 @@ export const staticPages = [
       'How ScienceGlimpse tokens work: earn them by reading articles, and spend them climbing in ScienceGlimpse Summit.',
   },
   {
-    path: '/leaderboard',
+    path: '/science-summit/leaderboard',
     title: 'ScienceGlimpse Summit Leaderboard',
     description:
       'The highest climbers in ScienceGlimpse Summit, ranked by best altitude reached.',

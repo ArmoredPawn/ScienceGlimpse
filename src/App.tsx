@@ -95,7 +95,15 @@ const App = () => (
             path="/game"
             element={<Navigate to="/science-summit" replace />}
           />
-          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route
+            path="/science-summit/leaderboard"
+            element={<Leaderboard />}
+          />
+          {/* The leaderboard lived at /leaderboard before it was renamed. */}
+          <Route
+            path="/leaderboard"
+            element={<Navigate to="/science-summit/leaderboard" replace />}
+          />
           <Route path="/quick-draw-ladder" element={<QuickDrawLadder />} />
           <Route
             path="/quick-draw-ladder/leaderboard"

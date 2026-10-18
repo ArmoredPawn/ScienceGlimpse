@@ -43,8 +43,8 @@ const GAMES: ArcadeGame[] = [
     title: 'ScienceGlimpse Quick Draw Ladder',
     description:
       'Tap the instant DRAW! flashes — but watch out for fake-outs. ' +
-      'Five draws make one average time, and beating the player just ' +
-      'above you climbs the ladder. Each duel costs 1 ScienceGlimpse token.',
+      'Five draws make one average time, and your best goes on the ' +
+      'leaderboard. Each duel costs 1 ScienceGlimpse token.',
     image: quickDrawPreview,
     imageAlt:
       'ScienceGlimpse Quick Draw Ladder: a green DRAW! signal beside a ' +

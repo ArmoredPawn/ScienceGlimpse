@@ -8,7 +8,6 @@ import { useGameEnergy } from "@/hooks/useGameEnergy";
 import {
   useQuickDrawLadder,
   type DuelReport,
-  type LadderRival,
 } from "@/hooks/useQuickDrawLadder";
 import {
   DRAWS_PER_DUEL,
@@ -48,9 +47,7 @@ interface DuelState {
   falseStarts: number;
   falseStartReason: FalseStartReason | null;
   decoyWord: string;
-  /** Who this duel is against, fixed when it starts. */
-  rival: LadderRival | null;
-  /** The time to beat: the rival's, or the #1 player's own record. */
+  /** The player's best when the duel started; null before their first. */
   target: number | null;
   disqualified: boolean;
 }
@@ -87,23 +84,18 @@ function averageOf(times: number[]) {
   );
 }
 
-function rivalName(duel: DuelState) {
-  return duel.rival ? `@${duel.rival.username}` : "your record";
-}
-
 function describeDuel(
   average: number,
-  duel: DuelState,
   report: DuelReport
 ): { title: string; detail: string } {
-  const { rival, target } = duel;
   const { rank, size } = report.position;
 
   if (!report.saved) {
     return {
       title: "Time Not Saved",
-      detail:
-        "Your average couldn't be saved, so the ladder hasn't changed. Check your connection and try again.",
+      detail: report.overQuota
+        ? "The leaderboard is over its daily limit, so your average couldn't be saved. Try again later."
+        : "Your average couldn't be saved, so the leaderboard hasn't changed. Check your connection and try again.",
     };
   }
 
@@ -112,57 +104,40 @@ function describeDuel(
 
   if (report.previousBest === null) {
     return {
-      title: "You're on the Ladder!",
+      title: "You're on the Leaderboard!",
       detail: `Welcome aboard.${rankLine}`,
     };
   }
 
-  if (rival && average < rival.bestTime) {
+  const behind = average - report.previousBest;
+
+  if (report.newBest) {
     const climbed =
-      report.previousRank !== null && rank !== null
+      report.previousRank !== null &&
+      rank !== null &&
+      rank < report.previousRank
         ? ` You're now #${rank}, up from #${report.previousRank}.`
         : rankLine;
 
     return {
-      title: `You Passed @${rival.username}!`,
-      detail: `${rival.bestTime - average} ms faster than their best.${climbed}`,
+      title: rank === 1 ? "New #1 Record! 👑" : "New Personal Best!",
+      detail: `${-behind} ms faster than your old best.${climbed}`,
     };
   }
 
-  if (report.newBest && !rival) {
-    return {
-      title: "New #1 Record! 👑",
-      detail: `You beat your old record of ${report.previousBest} ms.`,
-    };
-  }
-
-  const behind = target !== null ? average - target : null;
-
-  if (report.newBest) {
-    return {
-      title: "New Personal Best!",
-      detail:
-        behind !== null
-          ? `${behind} ms behind ${rivalName(duel)}.${rankLine}`
-          : rankLine.trim(),
-    };
-  }
-
-  if (behind !== null && behind <= NEAR_MISS_MS) {
+  if (behind <= NEAR_MISS_MS) {
     return {
       title: "So Close!",
       detail:
         behind === 0
-          ? `Dead even with ${rivalName(duel)} — you need to be faster to pass.`
-          : `Just ${behind} ms behind ${rivalName(duel)}.`,
+          ? `Tied your best of ${report.previousBest} ms — you need to be faster to beat it.`
+          : `Just ${behind} ms off your best of ${report.previousBest} ms.`,
     };
   }
 
   return {
     title: "Duel Over",
-    detail: `${
-      behind !== null ? `${behind} ms off ${rivalName(duel)}. ` : ""
-    }Your best is still ${report.previousBest} ms.`,
+    detail: `${behind} ms off your best. Your best is still ${report.previousBest} ms.${rankLine}`,
   };
 }
 
@@ -473,8 +448,7 @@ export default function QuickDrawLadder() {
     setCharging(true);
 
     // Fixed now, so the target can't shift mid-duel.
-    const rival = ladder.rival;
-    const target = rival ? rival.bestTime : ladder.bestTime;
+    const target = ladder.bestTime;
 
     const paid = await gameEnergy.spendToken();
 
@@ -499,7 +473,6 @@ export default function QuickDrawLadder() {
       falseStarts: 0,
       falseStartReason: null,
       decoyWord: DECOY_WORDS[0],
-      rival,
       target,
       disqualified: false,
     });
@@ -518,7 +491,6 @@ export default function QuickDrawLadder() {
       falseStarts: 0,
       falseStartReason: null,
       decoyWord: DECOY_WORDS[0],
-      rival: null,
       target: null,
       disqualified: false,
     });
@@ -536,7 +508,7 @@ export default function QuickDrawLadder() {
     }
 
     if (ladder.loading) {
-      return "Loading the ladder...";
+      return "Loading the leaderboard...";
     }
 
     if (charging) {
@@ -547,9 +519,7 @@ export default function QuickDrawLadder() {
       return "Out of tokens — read an article to earn more";
     }
 
-    return ladder.rival
-      ? `Duel @${ladder.rival.username} — ${TOKENS_PER_CHARGE} token`
-      : `Start a Duel — ${TOKENS_PER_CHARGE} token`;
+    return `Start a Duel — ${TOKENS_PER_CHARGE} token`;
   };
 
   const duelButtonDisabled =
@@ -557,7 +527,7 @@ export default function QuickDrawLadder() {
 
   /*
    * Signed-in only, like ScienceGlimpse Summit: real tokens pay for each
-   * duel, and the best time goes on the public ladder.
+   * duel, and the best time goes on the public leaderboard.
    */
   if (authLoading) {
     return (
@@ -588,7 +558,8 @@ export default function QuickDrawLadder() {
             <p>
               ScienceGlimpse Quick Draw Ladder is only available to
               signed-in ScienceGlimpse members — your real tokens pay
-              for each duel, and your best time goes on the ladder.
+              for each duel, and your best time goes on the
+              leaderboard.
             </p>
 
             <Link to="/login" className="qd-primary-button qd-link-button">
@@ -599,7 +570,7 @@ export default function QuickDrawLadder() {
               to="/quick-draw-ladder/leaderboard"
               className="qd-note qd-note-link"
             >
-              View the ladder →
+              View the leaderboard →
             </Link>
           </div>
         </div>
@@ -607,9 +578,9 @@ export default function QuickDrawLadder() {
     );
   }
 
-  const renderRival = () => {
+  const renderStanding = () => {
     if (ladder.loading) {
-      return <p className="qd-rival-detail">Finding your rival...</p>;
+      return <p className="qd-standing-detail">Loading the leaderboard...</p>;
     }
 
     if (ladder.errorMessage) {
@@ -620,40 +591,36 @@ export default function QuickDrawLadder() {
       );
     }
 
-    if (ladder.rival) {
+    if (ladder.rank !== null && ladder.bestTime !== null) {
       return (
         <>
-          <div className="qd-rival-row">
-            <span className="qd-rival-name">
-              @{ladder.rival.username}
+          <div className="qd-standing-row">
+            <span className="qd-standing-rank">
+              #{ladder.rank}
+              {ladder.rank === 1 ? " 👑" : ""}
+              <small> of {ladder.ladderSize}</small>
             </span>
 
-            <span className="qd-rival-time">
-              {ladder.rival.bestTime} ms
+            <span className="qd-standing-time">
+              {ladder.bestTime} ms
             </span>
           </div>
 
-          <p className="qd-rival-detail">
-            {ladder.rank === null
-              ? `Your first duel puts you on the ladder. Beat ${ladder.rival.bestTime} ms to start above @${ladder.rival.username}.`
-              : `You're #${ladder.rank}. Beat ${ladder.rival.bestTime} ms to pass them and move up the ladder.`}
+          <p className="qd-standing-detail">
+            Beat {ladder.bestTime} ms to set a new best
+            {ladder.rank === 1
+              ? " and stay on top."
+              : " and move up the leaderboard."}
           </p>
         </>
       );
     }
 
-    if (ladder.rank === 1 && ladder.bestTime !== null) {
-      return (
-        <p className="qd-rival-detail">
-          You're #1 👑 — beat your own record of {ladder.bestTime} ms
-          to defend the crown.
-        </p>
-      );
-    }
-
     return (
-      <p className="qd-rival-detail">
-        Nobody's on the ladder yet — your first duel makes you #1.
+      <p className="qd-standing-detail">
+        {ladder.ladderSize > 0
+          ? `${ladder.ladderSize} ${ladder.ladderSize === 1 ? "player is" : "players are"} on the leaderboard. Your first duel puts you on it.`
+          : "Nobody's on the leaderboard yet — your first duel makes you #1."}
       </p>
     );
   };
@@ -667,15 +634,13 @@ export default function QuickDrawLadder() {
 
         <p>
           Tap the instant <strong className="qd-draw-word">DRAW!</strong>{" "}
-          flashes. {DRAWS_PER_DUEL} draws make one average time — beat
-          the player just above you to take their spot.
+          flashes. {DRAWS_PER_DUEL} draws make one average time, and
+          your best average goes on the leaderboard.
         </p>
 
-        <div className="qd-rival">
-          <div className="qd-rival-label">
-            {ladder.rival ? "YOUR RIVAL" : "THE LADDER"}
-          </div>
-          {renderRival()}
+        <div className="qd-standing">
+          <div className="qd-standing-label">YOUR STANDING</div>
+          {renderStanding()}
         </div>
 
         <div className="qd-rules">
@@ -791,10 +756,10 @@ export default function QuickDrawLadder() {
                 }
               >
                 {diff < 0
-                  ? `${-diff} ms faster than ${rivalName(current)}`
+                  ? `${-diff} ms faster than your best`
                   : diff === 0
-                    ? `Dead even with ${rivalName(current)}`
-                    : `${diff} ms slower than ${rivalName(current)}`}
+                    ? "Dead even with your best"
+                    : `${diff} ms slower than your best`}
               </p>
             )}
 
@@ -843,8 +808,8 @@ export default function QuickDrawLadder() {
           <p className="qd-tier">{tier.label}</p>
 
           <p>
-            Warm-ups are free and don't count. Ready to take on the
-            ladder? Most people average around 250 ms.
+            Warm-ups are free and don't count. Ready to get on the
+            leaderboard? Most people average around 250 ms.
           </p>
 
           <button
@@ -924,7 +889,7 @@ export default function QuickDrawLadder() {
       );
     }
 
-    const verdict = describeDuel(average, current, report);
+    const verdict = describeDuel(average, report);
 
     return (
       <div className="qd-card qd-results">
@@ -993,10 +958,7 @@ export default function QuickDrawLadder() {
         </span>
 
         {current.target !== null && (
-          <span>
-            TARGET {current.target} MS
-            {current.rival ? ` · @${current.rival.username}` : " · YOUR RECORD"}
-          </span>
+          <span>YOUR BEST {current.target} MS</span>
         )}
 
         {current.mode === "duel" && (
@@ -1066,8 +1028,8 @@ export default function QuickDrawLadder() {
 
           <p>
             Tap the instant DRAW! flashes. Each duel costs{" "}
-            {TOKENS_PER_CHARGE} token — beat the player above you to
-            climb.
+            {TOKENS_PER_CHARGE} token, and your best average goes on the
+            leaderboard.
           </p>
         </div>
 

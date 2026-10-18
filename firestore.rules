@@ -668,6 +668,12 @@ service cloud.firestore {
               'updatedAt'
             ])
             && validQuickDrawTime(request.resource.data.bestTime)
+            // A best time can only get faster, so a slower duel can never
+            // replace it (and, through the getAfter check on
+            // quickDrawLeaderboard, never reach the ladder either).
+            && (resource == null
+              || request.resource.data.bestTime
+                <= resource.data.bestTime)
           )
           || (
             statId != 'quickDraw'

@@ -4,15 +4,12 @@ import {
   doc,
   getCountFromServer,
   getDoc,
-  getDocs,
-  limit,
-  orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   where,
-  writeBatch,
-  type DocumentSnapshot,
+  FirestoreError,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
@@ -22,23 +19,11 @@ import {
   QUICK_DRAW_STAT_ID,
 } from "@/lib/quickDraw";
 
-export interface LadderRival {
-  uid: string;
-  username: string;
-  bestTime: number;
-}
-
 export interface LadderPosition {
   /** 1-based, and ties share a rank. Null until the player has a time. */
   rank: number | null;
   /** How many players are on the ladder. */
   size: number;
-  /**
-   * The player to beat: the next-fastest time above this player's, or the
-   * slowest player on the ladder for someone who isn't on it yet. Null for
-   * the #1 player, and when the ladder is empty.
-   */
-  rival: LadderRival | null;
 }
 
 export interface DuelReport {
@@ -46,70 +31,48 @@ export interface DuelReport {
   newBest: boolean;
   /** False when a new best could not be saved, so nothing changed. */
   saved: boolean;
+  /** The save failed because Firestore is over its usage quota. */
+  overQuota: boolean;
   previousBest: number | null;
   previousRank: number | null;
   /** Where the player stands after this duel. */
   position: LadderPosition;
 }
 
+/**
+ * Firestore refuses every request once the project is over its usage
+ * quota (on the free plan, until the daily reset at midnight Pacific).
+ * Worth telling apart from a dropped connection.
+ */
+function isOverQuota(error: unknown) {
+  return (
+    error instanceof FirestoreError && error.code === "resource-exhausted"
+  );
+}
+
 const EMPTY_POSITION: LadderPosition = {
   rank: null,
   size: 0,
-  rival: null,
 };
 
-function toRival(snapshot: DocumentSnapshot): LadderRival | null {
-  const data = snapshot.data();
-
-  if (
-    !data ||
-    typeof data.username !== "string" ||
-    typeof data.bestTime !== "number"
-  ) {
-    return null;
-  }
-
-  return {
-    uid: snapshot.id,
-    username: data.username,
-    bestTime: data.bestTime,
-  };
-}
-
 async function loadPosition(
-  userId: string,
   bestTime: number | null,
 ): Promise<LadderPosition> {
   const ladder = collection(db, QUICK_DRAW_LEADERBOARD);
 
   if (bestTime === null) {
-    // Two, in case the slowest entry is somehow this player's own.
-    const [sizeSnapshot, slowestSnapshot] = await Promise.all([
-      getCountFromServer(ladder),
-      getDocs(query(ladder, orderBy("bestTime", "desc"), limit(2))),
-    ]);
-
-    const rival =
-      slowestSnapshot.docs
-        .filter((entry) => entry.id !== userId)
-        .map(toRival)
-        .find((entry) => entry !== null) ?? null;
+    const sizeSnapshot = await getCountFromServer(ladder);
 
     return {
       rank: null,
       size: sizeSnapshot.data().count,
-      rival,
     };
   }
 
-  const faster = query(ladder, where("bestTime", "<", bestTime));
-
-  const [sizeSnapshot, fasterSnapshot, rivalSnapshot] =
-    await Promise.all([
-      getCountFromServer(ladder),
-      getCountFromServer(faster),
-      getDocs(query(faster, orderBy("bestTime", "desc"), limit(1))),
-    ]);
+  const [sizeSnapshot, fasterSnapshot] = await Promise.all([
+    getCountFromServer(ladder),
+    getCountFromServer(query(ladder, where("bestTime", "<", bestTime))),
+  ]);
 
   const rank = fasterSnapshot.data().count + 1;
 
@@ -117,19 +80,15 @@ async function loadPosition(
     rank,
     // A best that never reached the board (no username yet) still ranks.
     size: Math.max(sizeSnapshot.data().count, rank),
-    rival:
-      rivalSnapshot.docs.length > 0
-        ? toRival(rivalSnapshot.docs[0])
-        : null,
   };
 }
 
 /**
  * A signed-in player's place on the ScienceGlimpse Quick Draw Ladder: their
- * best average reaction time (users/{uid}/gameStats/quickDraw), their rank,
- * and the rival directly above them. The ladder itself is the public
- * quickDrawLeaderboard collection, kept in step with gameStats exactly the
- * way useBestAltitude keeps Summit's leaderboard in step.
+ * best average reaction time (users/{uid}/gameStats/quickDraw) and their
+ * rank. The ladder itself is the public quickDrawLeaderboard collection,
+ * kept in step with gameStats exactly the way useBestAltitude keeps
+ * Summit's leaderboard in step.
  */
 export function useQuickDrawLadder() {
   const { user, loading: authLoading } = useAuth();
@@ -191,6 +150,14 @@ export function useQuickDrawLadder() {
 
       const best = typeof storedBest === "number" ? storedBest : null;
 
+      if (cancelled) {
+        return;
+      }
+
+      // Known now, so the best shows even if the rank lookup below fails.
+      bestRef.current = best;
+      setBestTime(best);
+
       /*
        * Publish this account's record if the board is missing it or has
        * it under an old username. reportDuel only writes on a new best,
@@ -218,16 +185,13 @@ export function useQuickDrawLadder() {
         });
       }
 
-      const nextPosition = await loadPosition(userId, best);
+      const nextPosition = await loadPosition(best);
 
       if (cancelled) {
         return;
       }
 
-      bestRef.current = best;
       positionRef.current = nextPosition;
-
-      setBestTime(best);
       setPosition(nextPosition);
     };
 
@@ -236,7 +200,11 @@ export function useQuickDrawLadder() {
         console.error("Could not load the Quick Draw ladder:", error);
 
         if (!cancelled) {
-          setErrorMessage("The ladder could not be loaded right now.");
+          setErrorMessage(
+            isOverQuota(error)
+              ? "The leaderboard is over its daily limit. Try again later."
+              : "The leaderboard could not be loaded right now.",
+          );
         }
       })
       .finally(() => {
@@ -252,18 +220,20 @@ export function useQuickDrawLadder() {
 
   /**
    * Records a finished duel's average time. A new best is saved to
-   * gameStats and the public ladder together, then the player's rank and
-   * next rival are reloaded either way.
+   * gameStats and the public ladder together, then the player's rank is
+   * reloaded either way.
    */
   const reportDuel = useCallback(
     async (averageTime: number): Promise<DuelReport> => {
-      const previousBest = bestRef.current;
+      let previousBest = bestRef.current;
       const previousRank = positionRef.current.rank;
 
-      const newBest = previousBest === null || averageTime < previousBest;
+      let newBest = previousBest === null || averageTime < previousBest;
 
       let saved = true;
+      let overQuota = false;
 
+      // Slower than a best already loaded: there's nothing to save.
       if (userId && newBest) {
         const statsReference = doc(
           db,
@@ -275,33 +245,49 @@ export function useQuickDrawLadder() {
 
         const username = usernameRef.current;
 
+        /*
+         * Compare against the stored best, not the one in memory: if the
+         * ladder failed to load, bestRef is still null and every duel
+         * would look like a first record, overwriting a faster one.
+         */
         try {
-          if (username) {
-            const batch = writeBatch(db);
+          const storedBest = await runTransaction(db, async (transaction) => {
+            const statsSnapshot = await transaction.get(statsReference);
 
-            batch.set(statsReference, {
+            const stored = statsSnapshot.exists()
+              ? statsSnapshot.data().bestTime
+              : null;
+
+            const best = typeof stored === "number" ? stored : null;
+
+            if (best !== null && averageTime >= best) {
+              return best;
+            }
+
+            transaction.set(statsReference, {
               bestTime: averageTime,
               updatedAt: serverTimestamp(),
             });
 
-            batch.set(doc(db, QUICK_DRAW_LEADERBOARD, userId), {
-              username,
-              bestTime: averageTime,
-              updatedAt: serverTimestamp(),
-            });
-
-            await batch.commit();
-          } else {
             // No username to publish under yet. Keep the record; the sync
             // on a later visit puts it on the board.
-            await setDoc(statsReference, {
-              bestTime: averageTime,
-              updatedAt: serverTimestamp(),
-            });
-          }
+            if (username) {
+              transaction.set(doc(db, QUICK_DRAW_LEADERBOARD, userId), {
+                username,
+                bestTime: averageTime,
+                updatedAt: serverTimestamp(),
+              });
+            }
+
+            return best;
+          });
+
+          previousBest = storedBest;
+          newBest = storedBest === null || averageTime < storedBest;
         } catch (error) {
           console.error("Could not save the Quick Draw time:", error);
           saved = false;
+          overQuota = isOverQuota(error);
         }
       }
 
@@ -314,7 +300,7 @@ export function useQuickDrawLadder() {
 
       if (userId) {
         try {
-          nextPosition = await loadPosition(userId, best);
+          nextPosition = await loadPosition(best);
 
           positionRef.current = nextPosition;
           setPosition(nextPosition);
@@ -326,6 +312,7 @@ export function useQuickDrawLadder() {
       return {
         newBest,
         saved,
+        overQuota,
         previousBest,
         previousRank,
         position: nextPosition,
@@ -340,7 +327,6 @@ export function useQuickDrawLadder() {
     bestTime,
     rank: position.rank,
     ladderSize: position.size,
-    rival: position.rival,
     reportDuel,
   };
 }

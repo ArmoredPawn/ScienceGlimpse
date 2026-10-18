@@ -185,10 +185,10 @@
 }
 
 /* =========================================================
-   RIVAL PANEL
+   STANDING PANEL
    ========================================================= */
 
-.qd-rival {
+.qd-standing {
   margin-top: 18px;
   padding: 14px 16px;
 
@@ -199,14 +199,14 @@
   text-align: left;
 }
 
-.qd-rival-label {
+.qd-standing-label {
   color: #f6c65c;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.16em;
 }
 
-.qd-rival-row {
+.qd-standing-row {
   margin-top: 6px;
 
   display: flex;
@@ -215,7 +215,7 @@
   gap: 12px;
 }
 
-.qd-rival-name {
+.qd-standing-rank {
   min-width: 0;
 
   overflow: hidden;
@@ -227,14 +227,20 @@
   font-weight: 800;
 }
 
-.qd-rival-time {
+.qd-standing-rank small {
+  color: #c3d3e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qd-standing-time {
   color: #f6c65c;
   font-size: 18px;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.qd-card p.qd-rival-detail {
+.qd-card p.qd-standing-detail {
   margin: 6px 0 0;
 
   color: #c3d3e1;

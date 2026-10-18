@@ -84,7 +84,7 @@ export const staticPages = [
     path: '/quick-draw-ladder',
     title: 'ScienceGlimpse Quick Draw Ladder',
     description:
-      'Test your reflexes in ScienceGlimpse Quick Draw Ladder. Tap the instant DRAW! flashes, beat the player above you and climb the reaction-time ladder.',
+      'Test your reflexes in ScienceGlimpse Quick Draw Ladder. Tap the instant DRAW! flashes and put your best reaction time on the leaderboard.',
   },
   {
     path: '/quick-draw-ladder/leaderboard',

@@ -44,12 +44,12 @@ const GameSection: React.FC = () => {
           </h2>
 
           <p className="text-lg leading-relaxed text-gray-200 mt-6">
-            Climb as high as you can in <b>ScienceGlimpse Summit</b>. Jump across
-            floating platforms while lava rises steadily from below.
-            Or test your reflexes in <b>ScienceGlimpse Quick Draw
-            Ladder</b> and race up the leaderboard. Power every game with
-            your real ScienceGlimpse tokens, earned by reading articles or
-            publishing new articles.
+            Need a break from reading? We made a couple of games for that.
+            In <b>ScienceGlimpse Summit</b>, you hop from platform to platform
+            while lava creeps up behind you. In <b>ScienceGlimpse Quick Draw
+            Ladder</b>, you wait for the signal and try to click faster than
+            everyone else. Both run on the tokens you get for reading and
+            writing articles here, so the more you read, the more you can play.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-12">

@@ -1,6 +1,6 @@
 import React from "react";
-
 import AnimatedBackground from "./AnimatedBackground";
+
 import Navigation from "./Navigation";
 
 interface AccountPageLayoutProps {

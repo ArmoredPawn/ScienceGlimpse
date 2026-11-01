@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ExternalLink, FileText } from 'lucide-react';
+import AnimatedBackground from '@/components/AnimatedBackground';
+import { ArrowLeft, ExternalLink, FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
-import AnimatedBackground from '@/components/AnimatedBackground';
 
 const Submission = () => {
   useEffect(() => {
@@ -91,7 +91,7 @@ const Submission = () => {
             {/* What We Look For */}
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-6">
               <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔍</span>
+                <Search className="w-6 h-6 text-primary" aria-hidden="true" />
                 What We Look For
               </h3>
               <ul className="space-y-3 text-muted-foreground">
@@ -162,7 +162,7 @@ const Submission = () => {
             {/* What We Look For */}
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-6">
               <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔍</span>
+                <Search className="w-6 h-6 text-primary" aria-hidden="true" />
                 What We Look For
               </h3>
               <ul className="space-y-3 text-muted-foreground">
@@ -232,7 +232,7 @@ const Submission = () => {
             {/* What We Look For */}
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-6">
               <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔍</span>
+                <Search className="w-6 h-6 text-primary" aria-hidden="true" />
                 What We Look For
               </h3>
               <ul className="space-y-3 text-muted-foreground">
@@ -294,7 +294,7 @@ const Submission = () => {
             {/* What We Look For */}
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-6">
               <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔍</span>
+                <Search className="w-6 h-6 text-primary" aria-hidden="true" />
                 What We Look For
               </h3>
               <ul className="space-y-3 text-muted-foreground">
@@ -364,7 +364,7 @@ const Submission = () => {
             {/* What We Look For */}
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-6">
               <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="text-2xl">🔍</span>
+                <Search className="w-6 h-6 text-primary" aria-hidden="true" />
                 What We Look For
               </h3>
               <ul className="space-y-3 text-muted-foreground">

@@ -62,7 +62,6 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Science Theme Colors
 				quantum: 'hsl(var(--quantum-glow))',
 				molecule: 'hsl(var(--molecule-blue))',
 				neuron: 'hsl(var(--neuron-green))',

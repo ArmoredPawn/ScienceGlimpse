@@ -17,7 +17,7 @@ const JuniorWritersPopup: React.FC = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl bg-gradient-to-r from-neuron to-cosmic bg-clip-text text-transparent">
+          <DialogTitle className="text-2xl text-foreground">
             ScienceGlimpse Junior Writers Program
           </DialogTitle>
 
@@ -47,7 +47,6 @@ const JuniorWritersPopup: React.FC = () => {
 
         <div className="pt-2">
           <Button
-            variant="neuron"
             className="w-full"
             onClick={() => {
               setOpen(false);

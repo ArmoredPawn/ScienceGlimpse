@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import { Trophy, Mountain } from 'lucide-react';
 
-import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
@@ -151,7 +151,7 @@ const Leaderboard = () => {
             </div>
 
             <div className="text-center mt-10">
-              <Button asChild variant="neuron" size="lg">
+              <Button asChild size="lg">
                 <Link to="/science-summit">Play ScienceGlimpse Summit</Link>
               </Button>
             </div>

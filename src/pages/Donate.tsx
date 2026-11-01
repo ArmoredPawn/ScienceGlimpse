@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 const Donate = () => {
   useEffect(() => {
@@ -10,21 +10,21 @@ const Donate = () => {
       <AnimatedBackground />
       <Navigation />
       
-      <main className="relative z-10 pt-24 px-4">
+      <main className="relative z-10 pt-32 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Support Our Mission
           </h1>
           
           {/* Donation amount buttons */}
-          <div className="flex justify-center gap-4 mb-12">
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white px-[68px] py-[50px] text-7xl">
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            <Button size="lg" className="h-16 min-w-28 text-2xl font-semibold">
               $5
             </Button>
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white px-[68px] py-[50px] text-7xl">
+            <Button size="lg" className="h-16 min-w-28 text-2xl font-semibold">
               $10
             </Button>
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white px-[68px] py-[50px] text-7xl">
+            <Button size="lg" className="h-16 min-w-28 text-2xl font-semibold">
               $25
             </Button>
           </div>

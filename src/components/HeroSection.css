@@ -1,11 +1,11 @@
 .flowing-gradient-text {
   background: linear-gradient(
     90deg,
-    #a78bfa 0%,
-    #38bdf8 25%,
-    #34d399 50%,
-    #a78bfa 75%,
-    #a78bfa 100%
+    hsl(var(--quantum-glow)) 0%,
+    hsl(var(--molecule-blue)) 25%,
+    hsl(var(--neuron-green)) 50%,
+    hsl(var(--quantum-glow)) 75%,
+    hsl(var(--quantum-glow)) 100%
   );
   background-size: 300% 100%;
   background-clip: text;
@@ -25,20 +25,20 @@
 
 /* Subtle purple glow for the first button */
 .glow-action-btn-purple {
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition: box-shadow 0.3s, transform 0.3s, background-color 0.3s;
 }
 .glow-action-btn-purple:hover, .glow-action-btn-purple:focus {
-  box-shadow: 0 0 8px 2px #a78bfa;
+  box-shadow: 0 0 6px 1px rgba(167, 139, 250, 0.5);
   transform: scale(1.03);
   z-index: 10;
 }
 
 /* Subtle green glow for the second button */
 .glow-action-btn-green {
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition: box-shadow 0.3s, transform 0.3s, background-color 0.3s;
 }
 .glow-action-btn-green:hover, .glow-action-btn-green:focus {
-  box-shadow: 0 0 8px 2px #34d399;
+  box-shadow: 0 0 6px 1px rgba(52, 211, 153, 0.5);
   transform: scale(1.03);
   z-index: 10;
 }

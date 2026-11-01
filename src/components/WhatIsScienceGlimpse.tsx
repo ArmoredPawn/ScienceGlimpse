@@ -20,21 +20,20 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
   const navigate = useNavigate();
 
   return (
-    <section className="relative py-20 md:py-24 overflow-hidden text-gray-100">
-
+    <section className="relative px-6 py-20 md:py-24 overflow-hidden">
       {/* Transparent backdrop (lets animated background show through) */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] pointer-events-none" />
+      <div className="absolute inset-0 dark:bg-black/30 backdrop-blur-[2px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 px-6">
+      <div className="relative z-10 max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
         <div className="flex-1 text-left">
           <h1 className={`${centerText ? 'text-center' : ''} text-4xl md:text-5xl font-extrabold mb-4`}>
             WHAT IS{' '}
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">
+            <span className="bg-gradient-to-r from-quantum to-molecule bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(168,85,247,0.3)]">
               SCIENCEGLIMPSE?
             </span>
           </h1>
 
-          <h2 className={`${centerText ? 'text-center' : ''} text-xl md:text-2xl text-blue-300 font-semibold mb-8`}>
+          <h2 className={`${centerText ? 'text-center' : ''} text-xl md:text-2xl text-molecule font-semibold mb-8`}>
             By Students, For Everyone
           </h2>
 
@@ -49,7 +48,7 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
                       : paragraphSize === 'lg'
                         ? 'text-lg md:text-xl'
                         : 'text-lg'
-                  } leading-relaxed text-gray-200 ${i === 0 ? '' : 'mt-4'}`}
+                  } leading-relaxed text-foreground/90 ${i === 0 ? '' : 'mt-4'}`}
                 >
                   {p}
                 </p>
@@ -63,7 +62,7 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
                   : paragraphSize === 'lg'
                     ? 'text-lg md:text-xl'
                     : 'text-lg'
-              } leading-relaxed text-gray-200 mt-6`}
+              } leading-relaxed text-foreground/90 mt-6`}
             >
               <b>ScienceGlimpse</b> is a student-led exploration site designed for anyone
               interested in learning more about a scientific topic or writing a
@@ -82,11 +81,7 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
               <Button
                 variant="outline"
                 size="lg"
-                className="
-                  glow-action-btn-green
-                  text-black dark:text-white
-                  text-lg py-4 transition-all duration-300
-                "
+                className="glow-action-btn-green text-base"
                 onClick={() => navigate('/about')}
               >
                 Learn More
@@ -97,7 +92,7 @@ const WhatIsScienceGlimpse: React.FC<Props> = ({
 
         {showVideo && (
           <div className="flex-1 flex justify-center">
-            <div className="w-80 h-[450px] rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(147,51,234,0.5)] border-4 border-purple-500/70">
+            <div className="w-80 h-[450px] rounded-2xl overflow-hidden shadow-[0_0_16px_rgba(147,51,234,0.25)] border-2 border-primary/60 bg-card">
               {/* YouTube refuses to play an embed that arrives without a referrer
                   ("Video player configuration error"), so pin the policy here
                   rather than relying on whatever the page or host sets. */}

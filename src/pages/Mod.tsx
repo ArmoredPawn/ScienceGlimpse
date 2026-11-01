@@ -184,7 +184,7 @@ const FlagBadge = ({ user }: { user: UserSummary }) =>
   isFlagged(user) ? (
     <Badge
       variant="outline"
-      className="gap-1 border-amber-500/60 text-amber-600 dark:text-amber-400"
+      className="gap-1 border-amber-500/60 text-amber-700 dark:text-amber-400"
       title={`${user.fastestHourReads} article rewards within one hour`}
     >
       <Flag className="h-3 w-3" />
@@ -1250,7 +1250,7 @@ const Mod = () => {
 
                 {isFlagged(selectedUser) && (
                   <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                    <span className="font-medium text-amber-700 dark:text-amber-400">
                       Flagged:
                     </span>{" "}
                     earned {selectedUser.fastestHourReads} article rewards

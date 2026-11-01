@@ -193,7 +193,7 @@ const Signup = () => {
     switch (usernameState) {
       case "invalid":
         return {
-          tone: "text-red-600",
+          tone: "text-destructive",
           text: "3–20 characters, using lowercase letters, numbers or underscores.",
           icon: <X className="h-4 w-4" />,
         };
@@ -205,19 +205,19 @@ const Signup = () => {
         };
       case "available":
         return {
-          tone: "text-green-600",
+          tone: "text-green-700 dark:text-green-400",
           text: `@${normalizedUsername} is available.`,
           icon: <Check className="h-4 w-4" />,
         };
       case "taken":
         return {
-          tone: "text-red-600",
+          tone: "text-destructive",
           text: `@${normalizedUsername} is already taken.`,
           icon: <X className="h-4 w-4" />,
         };
       case "error":
         return {
-          tone: "text-red-600",
+          tone: "text-destructive",
           text: "Could not check that username. Try again.",
           icon: <X className="h-4 w-4" />,
         };
@@ -335,7 +335,7 @@ const Signup = () => {
           </label>
 
           {password.length > 0 && !passwordLongEnough && (
-            <p className="mt-2 text-sm text-red-600">
+            <p className="mt-2 text-sm text-destructive">
               Use at least {MIN_PASSWORD_LENGTH} characters.
             </p>
           )}
@@ -359,7 +359,7 @@ const Signup = () => {
 
           {confirmPassword.length > 0 && !passwordsMatch && (
             <p
-              className="mt-2 flex items-center gap-2 text-sm text-red-600"
+              className="mt-2 flex items-center gap-2 text-sm text-destructive"
               aria-live="polite"
             >
               <X className="h-4 w-4" />
@@ -369,7 +369,7 @@ const Signup = () => {
 
           {passwordsMatch && passwordLongEnough && (
             <p
-              className="mt-2 flex items-center gap-2 text-sm text-green-600"
+              className="mt-2 flex items-center gap-2 text-sm text-green-700 dark:text-green-400"
               aria-live="polite"
             >
               <Check className="h-4 w-4" />
@@ -399,7 +399,7 @@ const Signup = () => {
         </form>
 
         {errorMessage && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-destructive" role="alert">
             {errorMessage}
           </p>
         )}

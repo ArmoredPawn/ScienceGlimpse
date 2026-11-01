@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from '@/components/Navigation';
 import AnimatedBackground from '@/components/AnimatedBackground';
-import { Mail, Users, HelpCircle } from 'lucide-react';
+import Navigation from '@/components/Navigation';
+import { Mail, Users, HelpCircle, Instagram, Linkedin, Music2, Youtube } from 'lucide-react';
 
 const Contact = () => {
   useEffect(() => {
@@ -12,7 +12,7 @@ const Contact = () => {
       <AnimatedBackground />
       <Navigation />
       
-      <main className="relative z-10 pt-24 px-4">
+      <main className="relative z-10 pt-32 px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
           <div className="text-center mb-16">
@@ -29,12 +29,11 @@ const Contact = () => {
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Mail className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold text-foreground">GET IN TOUCH</h2>
+                <h2 className="text-2xl font-bold text-foreground">Get in touch</h2>
               </div>
               <div className="space-y-4">
                 <p className="text-foreground">
                   <a href="mailto:ScienceGlimpse09@gmail.com" className="flex items-center gap-3 text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
-                    <span>✉</span>
                     <span>ScienceGlimpse09@gmail.com</span>
                   </a>
                 </p>
@@ -49,25 +48,24 @@ const Contact = () => {
             <div className="bg-card/60 backdrop-blur-sm border border-border rounded-lg p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Users className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-bold text-foreground">Follow Us</h2>
+                <h2 className="text-2xl font-bold text-foreground">Follow us</h2>
               </div>
-              <div><h4><b>Check out the links below!</b></h4></div>
-              <div> <h4>‎ </h4></div>
+              <p className="font-semibold text-foreground mb-4">Check out the links below!</p>
               <div className="space-y-3">
                 <a href="https://www.youtube.com/channel/UChziIqWZasnGmBC1TrA1jNQ" className="flex items-center gap-3 text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
-                  <span>🎥</span>
-                  <span><u>YouTube (ScienceGlimpse Shorts)</u></span>
+                  <Youtube className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>YouTube (ScienceGlimpse Shorts)</span>
                 </a>
                 <a href="#" className="flex items-center gap-3 text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
-                  <span>📧</span>
+                  <Music2 className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <span>TikTok (Weekly Science Glimpses)</span>
                 </a>
                 <a href="https://www.instagram.com/science.glimpse__/" className="flex items-center gap-3 text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
-                  <span>📸</span>
+                  <Instagram className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <span>Instagram (@ScienceGlimpse)</span>
                 </a>
                 <a href="https://www.linkedin.com/company/scienceglimpse/" className="flex items-center gap-3 text-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-muted">
-                  <span>🌐</span>
+                  <Linkedin className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <span>LinkedIn (ScienceGlimpse)</span>
                 </a>
               </div>

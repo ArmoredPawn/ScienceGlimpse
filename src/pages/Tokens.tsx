@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -9,7 +10,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { JUMPS_PER_TOKEN, TOKENS_PER_CHARGE } from '@/lib/tokens';
@@ -204,11 +204,11 @@ const Tokens = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-8">
-              <Button asChild variant="neuron" size="lg" className="flex-1">
+              <Button asChild size="lg" className="flex-1">
                 <Link to="/articles">Start Reading</Link>
               </Button>
 
-              <Button asChild variant="cosmic" size="lg" className="flex-1">
+              <Button asChild variant="outline" size="lg" className="flex-1">
                 <Link to="/arcade">Play in the Arcade</Link>
               </Button>
             </div>

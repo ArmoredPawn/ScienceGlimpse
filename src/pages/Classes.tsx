@@ -64,7 +64,7 @@ const Classes = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-8">
-              <Button asChild variant="neuron" size="lg" className="flex-1">
+              <Button asChild size="lg" className="flex-1">
                 <a
                   href={JUNIOR_WRITER_SIGNUP_URL}
                   target="_blank"
@@ -74,7 +74,7 @@ const Classes = () => {
                 </a>
               </Button>
 
-              <Button asChild variant="cosmic" size="lg" className="flex-1">
+              <Button asChild variant="outline" size="lg" className="flex-1">
                 <a
                   href={MENTOR_SIGNUP_URL}
                   target="_blank"

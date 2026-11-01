@@ -66,6 +66,10 @@
   
   <body>
     <div id="root"></div>
+    <script>
+      // Apply the saved theme before first paint so light-mode readers do not get a dark flash.
+      try { if (localStorage.getItem('sg-theme') === 'light') document.documentElement.classList.add('light'); } catch {}
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,14 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quote } from 'lucide-react';
+import { Atom, Brain, Cpu, Dna, Earth, FlaskConical, Microscope, Quote, Stethoscope, Telescope, Wrench, type LucideIcon } from 'lucide-react';
 
 interface Founder {
   name: string;
   role: string;
   mission: string;
-  favoriteFields: string[];
+  favoriteFields: LucideIcon[];
   quote: string;
-  gradient: string;
 }
 
 const FoundersSection = () => {
@@ -18,85 +17,49 @@ const FoundersSection = () => {
     name: 'Medhansh Garadala',
     role: 'Co-Founder: Executive Director & Head of Logistics',
     mission: 'Making complex quantum concepts accessible to every curious mind.',
-    favoriteFields: ['⚛️', '🧠', '🌌'],
+    favoriteFields: [Atom, Brain, Telescope],
     quote: 'Science isn\'t about memorizing — it\'s about glimpsing the truth behind the universe\'s most beautiful and facinating mysteries.',
-    gradient: 'from-quantum to-cosmic'
   }, {
     name: 'Ansh Sharma',
     role: 'Co-Founder: Director of Strategy & Lead Task Manager',
     mission: 'Blending storytelling with clarity to make research irresistible.',
-    favoriteFields: ['🔬', '🌌', '⚛️'],
+    favoriteFields: [Microscope, Telescope, Atom],
     quote: 'We don\'t simplify science. We clarify it. There\'s a huge difference between the two — and it changes everything.',
-    gradient: 'from-quantum to-neuron'
   }, {
     name: 'Aarav Madan',
     role: 'Co-Founder: Director of Media & Creative Innovation Outreach',
     mission: 'To craft visual and narrative experiences that bring science to life—capturing wonder, curiosity, and design in every frame.',
-    favoriteFields: ['⚙️', '💻', '🌍'],
+    favoriteFields: [Wrench, Cpu, Earth],
     quote: 'Creativity is the science of seeing differently than your peers—then actually making it real.',
-    gradient: 'from-neuron to-cosmic'
   }, {
     name: 'Ayush Srivastava',
     role: 'Co-Founder: Head Programmer & Lead Technical Coder',
     mission: 'To structure the backbone of the voices of tomorrow and facilitate the science of today.',
-    favoriteFields: ['⚙️', '💻', '🧪'],
+    favoriteFields: [Wrench, Cpu, FlaskConical],
     quote: 'Good code is what makes a website clear and functional. Great code is what makes a website unforgettable.',
-    gradient: 'from-cosmic to-quantum'
   }, {
     name: 'Kavin Puri',
     role: 'Co-Founder: Head Developer & Director of Content & Design',
     mission: 'To fuse elegant design with clear information & talented members and channel a universe of scientific innovation.',
-    favoriteFields: ['🧬', '💻', '🩺'],
+    favoriteFields: [Dna, Cpu, Stethoscope],
     quote: 'Every great team needs a great developer at its core to bring their vision to life & build towards the future of scientific collaboration.',
-    gradient: 'from-molecule to-neuron'
   }, {
     name: 'Saanvi Palagani',
     role: 'Co-Founder: Chief Editor & Publicity Director',
     mission: 'To amplify voices that turn raw ideas into crystal-clear narratives—making science accessible, bold, and beautiful.',
-    favoriteFields: ['🧬', '🧠', '⚗️'],
+    favoriteFields: [Dna, Brain, FlaskConical],
     quote: 'Define Science.',
-    gradient: 'from-molecule to-neuron'
   }, {
     name: 'Mihir Harinath',
     role: 'Co-Founder: Lead Advisor & Event Organizer',
     mission: 'To orchestrate spaces where people connect and visions takes teams with passion to create meaningful experiences.',
-    favoriteFields: ['⚙️', '💻', '🌎'],
+    favoriteFields: [Wrench, Cpu, Earth],
     quote: 'STEM is the key to the future.',
-    gradient: 'from-cosmic to-cosmic'
   }];
 
-  // subtle button gradients to vary per member (darker variants)
-  const buttonGradients = [
-    'linear-gradient(90deg,#052e24 0%,#064e3b 100%)',
-    'linear-gradient(90deg,#2a0b3d 0%,#4c1d95 100%)',
-    'linear-gradient(90deg,#003166 0%,#075985 100%)',
-    'linear-gradient(90deg,#2e026d 0%,#5b21b6 100%)',
-    'linear-gradient(90deg,#0b1f4b 0%,#321f7a 100%)',
-  ];
-
-  const buttonGradientMap: Record<string, string> = {
-    Media: 'linear-gradient(90deg,#052e24 0%,#064e3b 100%)',
-    Editing: 'linear-gradient(90deg,#2a0b3d 0%,#4c1d95 100%)',
-    Outreach: 'linear-gradient(90deg,#002f8f 0%,#0047b3 100%)',
-    Coding: 'linear-gradient(90deg,#2e026d 0%,#5b21b6 100%)'
-  };
-
-  const buttonBorderMap: Record<string, string> = {
-    Media: 'rgba(6,78,59,0.9)',
-    Editing: 'rgba(76,29,149,0.9)',
-    Outreach: 'rgba(0,47,143,0.9)',
-    Coding: 'rgba(46,2,109,0.9)'
-  };
-
-  const missionColorMap: Record<string, string> = {
-    Media: '#bfeccf',
-    Editing: '#e9d5ff',
-    Outreach: '#bfdbfe',
-    Coding: '#e9d5ff'
-  };
 
   return (
-    <section className="py-20 px-4 bg-muted/30 font-sans" id="team">
+    <section className="py-20 px-4 bg-muted/30" id="team">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -112,17 +75,11 @@ const FoundersSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {founders.map((founder) => (
             <div key={founder.name} className="group">
-              <div className="card-glow h-full p-8 rounded-xl relative overflow-hidden">
-                {/* Gradient overlay (darker) */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${founder.gradient} opacity-5 group-hover:opacity-15 transition-opacity duration-500`}
-                />
-
-                {/* Content */}
-                <div className="relative z-10 space-y-6">
+              <div className="card-lift h-full p-8 rounded-lg bg-card border border-border">
+                <div className="space-y-6">
                   {/* Name and Role */}
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
+                    <h3 className="text-2xl font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
                       {founder.name}
                     </h3>
                     <p className="text-primary font-medium">
@@ -136,20 +93,15 @@ const FoundersSection = () => {
                       Favorite Fields:
                     </span>
                     <div className="flex space-x-2">
-                      {founder.favoriteFields.map((emoji, i) => (
-                        <span
-                          key={i}
-                          className="text-2xl group-hover:animate-bounce hover:scale-110 transition-transform duration-300 cursor-pointer"
-                        >
-                          {emoji}
-                        </span>
+                      {founder.favoriteFields.map((Field, i) => (
+                        <Field key={i} className="h-5 w-5 text-primary group-hover:animate-bounce" aria-hidden="true" />
                       ))}
                     </div>
                   </div>
 
                   {/* Mission */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                    <h4 className="text-sm font-semibold text-foreground">
                       Mission
                     </h4>
                     <p className="text-muted-foreground leading-relaxed">
@@ -188,52 +140,43 @@ const FoundersSection = () => {
             Leads and members across our editorial and technical divisions. Click on any of the names of our Directors or writers below to view their published articles!
           </p>
 
-          <div className="grid grid-cols-1 gap-20">
+          <div className="grid grid-cols-1 gap-6">
             {[
               {
                 title: 'Media',
                 director: 'Aarav Madan',
                 mission: 'Create engaging visual and multimedia content that brings scientific stories to life.',
                 members: ['Anusha Gupta', 'Aashrith Rallabandi', 'Ishaan Sankaran', 'Mikul Jain', 'Bhawit Paudel', 'Mokshit Annavajhula', 'Sai Krishna Karthikeya Ramadugu', 'Sai Pranav Anantharamakrishnan', 'Riya Pawar', 'Shyamala Sree Sridhar'],
-                gradient: 'from-molecule/90 to-quantum/100'
               },
               {
                 title: 'Editing',
                 director: 'Saanvi Palagani',
                 mission: 'Refine and fact-check submissions to ensure clarity, accuracy, and editorial quality.',
                 members: ['Bhawit Paudel', 'Ishani Aluguvelli', 'Shareen Tarigonda'],
-                gradient: 'from-molecule/90 to-neuron/95'
               },
               {
                 title: 'Outreach',
                 director: ['Medhansh Garadala', 'Mihir Harinath'],
                 mission: 'Build community connections and broaden our readership through partnerships and events.',
                 members: ['Vedika Kamble'],
-                gradient: 'from-quantum/90 to-molecule/95'
               },
               {
                 title: 'Coding',
                 director: ['Kavin Puri', 'Ayush Srivastava'],
                 mission: 'Build and maintain the site\'s technical infrastructure to deliver fast, accessible science content.',
                 members: ['Tavish Choudhari', 'Sharmin Tarigonda'],
-                gradient: 'from-neuron/90 to-quantum/100'
               }
             ].map((div) => (
               <div key={div.title}>
-                <div className="card-glow p-12 rounded-lg relative overflow-hidden transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl border border-gray-300/30 hover:border-primary min-h-[220px]">
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${div.gradient} opacity-55 group-hover:opacity-60 transition-opacity duration-500 mix-blend-multiply`}
-                  />
-                  <div className="absolute inset-0 bg-black/86 group-hover:bg-black/92 transition-opacity duration-500" />
-
-                  <div className="relative z-10 flex flex-row items-center justify-between gap-4 w-full text-base">
-                    <div className="w-5/12 flex flex-col space-y-6">
+                <div className="p-6 md:p-10 rounded-lg bg-card border border-border transition-all duration-300 hover:scale-[1.01] hover:border-primary hover:shadow-[0_0_20px_rgba(124,58,237,0.15)]">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-8 w-full text-base">
+                    <div className="md:w-5/12 flex flex-col space-y-4">
                       <div>
-                        <h4 className="text-xl font-semibold text-white">
+                        <h4 className="text-2xl font-semibold text-foreground">
                           {div.title}
                         </h4>
 
-                        <p className="text-xl text-white mt-2">
+                        <p className="text-lg text-muted-foreground mt-2">
                           Director:{' '}
                           {Array.isArray(div.director) ? div.director.map((d: any, idx: number) => (
                             <span key={d}>
@@ -241,13 +184,13 @@ const FoundersSection = () => {
                                 onClick={() =>
                                   navigate(`/articles?author=${encodeURIComponent(d)}`)
                                 }
-                                className="inline text-xl font-extrabold text-white hover:opacity-90 transition-opacity mr-2"
+                                className="inline text-lg font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline mr-2"
                               >
                                 {d}
                               </button>
 
                               {idx < (div.director as string[]).length - 1 ? (
-                                <span className="text-white mr-2">&amp;</span>
+                                <span className="text-muted-foreground mr-2">&amp;</span>
                               ) : null}
                             </span>
                           )) : (
@@ -255,7 +198,7 @@ const FoundersSection = () => {
                               onClick={() =>
                                 navigate(`/articles?author=${encodeURIComponent(div.director as string)}`)
                               }
-                              className="inline text-xl font-extrabold text-white hover:opacity-90 transition-opacity"
+                              className="inline text-lg font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
                             >
                               {div.director}
                             </button>
@@ -264,39 +207,28 @@ const FoundersSection = () => {
                       </div>
 
                       <div className="flex-1 flex items-center">
-                        <p
-                          className="text-base mt-3"
-                          style={{
-                            color: missionColorMap[div.title] ?? '#d1d5db'
-                          }}
-                        >
+                        <p className="text-base text-muted-foreground">
                           <span className="font-semibold">Mission:</span>{' '}
                           {div.mission}
                         </p>
                       </div>
                     </div>
 
-                    <div className="w-7/12 pl-12">
-                      <p className="text-base text-white mb-4 uppercase font-medium tracking-wide ml-1">
+                    <div className="md:w-7/12">
+                      <p className="text-base text-foreground mb-3 font-semibold">
                         Members:
                       </p>
 
                       <div className="flex flex-wrap gap-3">
-                        {div.members.map((m, i) => (
+                        {div.members.map((m) => (
                           <button
                             key={m}
                             onClick={() =>
                               navigate(`/articles?author=${encodeURIComponent(m)}`)
                             }
-                            className="group text-base px-3 py-2 rounded-md transition-transform transform hover:scale-105 hover:shadow-[0_10px_36px_rgba(124,58,237,0.18)] focus:outline-none"
-                            style={{
-                              background: buttonGradientMap[div.title] ?? buttonGradients[i % buttonGradients.length],
-                              border: `1px solid ${buttonBorderMap[div.title] ?? 'rgba(55,0,95,0.6)'}`
-                            }}
+                            className="text-sm px-3 py-2 rounded-md border border-border bg-muted text-foreground transition-all duration-200 hover:scale-105 hover:border-primary hover:text-primary hover:shadow-[0_6px_18px_rgba(124,58,237,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
-                            <span className="font-bold text-white transition-colors duration-200 group-hover:text-purple-300">
-                              {m}
-                            </span>
+                            {m}
                           </button>
                         ))}
                       </div>
@@ -321,14 +253,14 @@ const FoundersSection = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                className="bg-transparent border border-border px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-muted/50"
+                className="bg-transparent border border-border px-6 py-3 rounded-lg font-medium transition-colors hover:bg-muted"
                 onClick={() => navigate('/submission')}
               >
                 Apply to Write
               </button>
 
               <button
-                className="bg-purple-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-lg font-medium transition-colors"
                 onClick={() => navigate('/contact')}
               >
                 Get Involved

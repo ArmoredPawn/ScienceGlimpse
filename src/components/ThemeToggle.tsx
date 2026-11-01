@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const STORAGE_KEY = 'sg-theme'; // 'light' or 'dark'
@@ -33,8 +34,9 @@ const ThemeToggle: React.FC = () => {
       onClick={() => setIsLight(prev => !prev)}
       aria-pressed={isLight}
       title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+      aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
     >
-      {isLight ? 'Dark Mode 🌙' : 'Light Mode ☀️'}
+      {isLight ? <Moon /> : <Sun />}
     </Button>
   );
 };

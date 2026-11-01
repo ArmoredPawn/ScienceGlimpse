@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
+// Fixed once at load so the stars don't jump every time the scene changes.
+const stars = Array.from({ length: 20 }, () => ({
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 5}s`,
+  animationDuration: `${4 + Math.random() * 4}s`,
+}));
+
 const AnimatedBackground = () => {
   const [currentTheme, setCurrentTheme] = useState(0);
   
@@ -128,17 +136,8 @@ const AnimatedBackground = () => {
 
       {/* Floating particles */}
       <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/20 rounded-full animate-float"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${4 + Math.random() * 4}s`
-            }}
-          />
+        {stars.map((style, i) => (
+          <div key={i} className="absolute w-1 h-1 bg-primary/20 rounded-full animate-float" style={style} />
         ))}
       </div>
     </div>

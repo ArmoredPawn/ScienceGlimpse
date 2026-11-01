@@ -12,16 +12,16 @@ const HeroSection = () => {
       <div className="max-w-6xl mx-auto text-center space-y-8">
         {/* Main Brand */}
         <div className="space-y-6">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold flowing-gradient-text bg-clip-text text-transparent leading-tight">
+          <h1 className="text-[clamp(2.75rem,11vw,6rem)] font-bold flowing-gradient-text leading-tight">
             ScienceGlimpse
           </h1>
 
-          <h2 className="text-2xl md:text-4xl text-foreground/90 leading-tight font-extralight lg:text-4xl">
+          <h2 className="text-2xl md:text-4xl text-foreground/90 leading-tight font-extralight">
             A 5-Minute Glimpse Into the
             <span className="block">Universe of Science</span>
           </h2>
 
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed md:text-xl font-bold">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-bold">
             From black holes to brainwaves — science, decoded and reimagined
           </p>
         </div>
@@ -30,19 +30,17 @@ const HeroSection = () => {
         <div className="pt-8 flex justify-center w-full max-w-2xl mx-auto">
           <div className="flex flex-col md:flex-row gap-4">
             <Button
-              variant="default"
               size="lg"
               onClick={() => navigate('/submission')}
-              className="glow-action-btn-purple bg-blue-700 hover:bg-purple-700 text-white text-lg py-4 transition-all duration-300 border border-black"
+              className="glow-action-btn-purple bg-blue-700 hover:bg-purple-700 text-white text-lg"
             >
-              Submit Your Article →
+              Submit Your Article
             </Button>
 
             <Button
-              variant="outline"
               size="lg"
               onClick={() => navigate('/classes')}
-              className="glow-action-btn-green bg-green-700 text-lg py-4 transition-all duration-300"
+              className="glow-action-btn-green bg-green-700 hover:bg-green-800 text-white text-lg"
             >
               Classes
             </Button>

@@ -8,7 +8,7 @@ type Props = {
 const GlossaryTooltip: React.FC<Props> = ({ term, definition }) => {
   return (
     <span className="relative inline-block glossary-term">
-      <span className="cursor-help border-b border-dotted border-blue-400 pb-0.5 text-blue-400" aria-label={definition}>
+      <span className="cursor-help border-b border-dotted border-primary pb-0.5 text-primary" aria-label={definition}>
         {term}
       </span>
 

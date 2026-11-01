@@ -17,11 +17,7 @@ const buttonVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        quantum: "bg-gradient-to-r from-quantum to-cosmic text-primary-foreground hover:shadow-lg hover:shadow-quantum/25 hover:scale-105 transform transition-all duration-300",
-        molecule: "bg-gradient-to-r from-molecule to-secondary text-secondary-foreground hover:shadow-lg hover:shadow-molecule/25 hover:scale-105 transform transition-all duration-300",
-        neuron: "bg-gradient-to-r from-neuron to-accent text-accent-foreground hover:shadow-lg hover:shadow-neuron/25 hover:scale-105 transform transition-all duration-300",
-        cosmic: "bg-gradient-to-r from-cosmic to-primary text-primary-foreground hover:shadow-lg hover:shadow-cosmic/25 hover:scale-105 transform transition-all duration-300"
+        link: "text-primary underline-offset-4 hover:underline"
       },
       size: {
         default: "h-10 px-4 py-2",

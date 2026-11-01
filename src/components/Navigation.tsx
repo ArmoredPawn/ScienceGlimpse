@@ -31,7 +31,7 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md text-foreground">
       {/* Full width rather than a centred max-width box, so the logo and the
           account controls sit against the edges of the screen instead of
           floating inwards on wide displays. */}
@@ -104,7 +104,7 @@ const Navigation: React.FC = () => {
 
         {/* Mobile navigation menu */}
         {isMenuOpen && (
-          <div className="mb-4 mt-2 rounded-lg border border-border bg-card/95 p-4 backdrop-blur-sm min-[1200px]:hidden">
+          <div className="mb-4 mt-2 rounded-lg border border-border bg-card/95 backdrop-blur-sm p-4 min-[1200px]:hidden">
             <div className="flex flex-col space-y-3">
               {navItems.map((item) => (
                 <Link

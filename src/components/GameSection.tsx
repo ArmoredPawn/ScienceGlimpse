@@ -8,17 +8,17 @@ const GameSection: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative py-20 md:py-24 overflow-hidden text-gray-100">
+    <section className="relative px-6 py-20 md:py-24 overflow-hidden">
       {/* Transparent backdrop (lets animated background show through) */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] pointer-events-none" />
+      <div className="absolute inset-0 dark:bg-black/30 backdrop-blur-[2px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-6xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-12 px-6">
+      <div className="relative z-10 max-w-6xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-12">
         <div className="flex-1 flex justify-center">
           <button
             type="button"
             onClick={() => navigate('/arcade')}
             aria-label="Open the ScienceGlimpse Arcade"
-            className="group relative w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(147,51,234,0.5)] border-4 border-purple-500/70"
+            className="group relative w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_16px_rgba(147,51,234,0.25)] border-2 border-primary/60"
           >
             <img
               src={gameScreenshot}
@@ -38,12 +38,12 @@ const GameSection: React.FC = () => {
         <div className="flex-1 text-left">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
             PLAY ON{' '}
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]">
+            <span className="bg-gradient-to-r from-quantum to-molecule bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(168,85,247,0.3)]">
               OUR ARCADE
             </span>
           </h2>
 
-          <p className="text-lg leading-relaxed text-gray-200 mt-6">
+          <p className="text-lg leading-relaxed text-foreground/90 mt-6">
             Need a break from reading? We made a couple of games for that.
             In <b>ScienceGlimpse Summit</b>, you hop from platform to platform
             while lava creeps up behind you. In <b>ScienceGlimpse Quick Draw
@@ -56,7 +56,7 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="glow-action-btn-green text-black dark:text-white text-lg py-4 transition-all duration-300"
+              className="glow-action-btn-green text-base"
               onClick={() => navigate('/arcade')}
             >
               Arcade
@@ -65,7 +65,7 @@ const GameSection: React.FC = () => {
             <Button
               variant="outline"
               size="lg"
-              className="text-lg py-4 transition-all duration-300"
+              className="text-base"
               onClick={() => navigate('/tokens')}
             >
               How Tokens Work

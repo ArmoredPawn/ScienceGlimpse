@@ -135,7 +135,7 @@ const ForgotPassword = () => {
         </form>
 
         {errorMessage && (
-          <p className="mt-4 text-sm text-red-600" role="alert">
+          <p className="mt-4 text-sm text-destructive" role="alert">
             {errorMessage}
           </p>
         )}

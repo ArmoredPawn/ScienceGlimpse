@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import { useNavigate } from 'react-router-dom';
 import { Coins, Gamepad2, Play, Trophy } from 'lucide-react';
 
-import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -129,7 +129,6 @@ const Arcade = () => {
 
                     <div className="flex flex-col gap-3 mt-6">
                       <Button
-                        variant="neuron"
                         size="lg"
                         onClick={() => handlePlayClick(game)}
                       >
@@ -174,7 +173,6 @@ const Arcade = () => {
           </DialogHeader>
 
           <Button
-            variant="neuron"
             className="w-full"
             onClick={() => {
               setLoginPromptGame(null);

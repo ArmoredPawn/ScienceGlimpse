@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import { Link } from 'react-router-dom';
 import {
   collection,
@@ -13,7 +14,6 @@ import {
 } from 'firebase/firestore';
 import { Zap } from 'lucide-react';
 
-import AnimatedBackground from '@/components/AnimatedBackground';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -236,7 +236,7 @@ const QuickDrawLeaderboard = () => {
             )}
 
             <div className="text-center mt-10">
-              <Button asChild variant="neuron" size="lg">
+              <Button asChild size="lg">
                 <Link to="/quick-draw-ladder">
                   Play ScienceGlimpse Quick Draw Ladder
                 </Link>

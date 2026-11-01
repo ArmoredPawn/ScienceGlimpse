@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Search, Clock, User, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Clock, User, Tag, ChevronLeft, ChevronRight, Shuffle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Navigation from '@/components/Navigation';
-import AnimatedBackground from '@/components/AnimatedBackground';
 
 type Article = {
   id: number | string;
@@ -18,24 +19,23 @@ type Article = {
 };
 
 const subjectGlowMap: Record<string, string> = {
-  Physics: 'rgba(138, 46, 225, 0.32)',
-  Biology: 'rgba(20, 43, 28, 0.32)',
-  Chemistry: 'rgba(169, 249, 22, 0.32)',
-  Astronomy: 'rgba(59,130,246,0.32)',
-  Medicine: 'rgba(21, 200, 232, 0.32)',
-  Technology: 'rgba(233, 208, 14, 0.32)',
-  Engineering: 'rgba(161, 206, 239, 0.32)',
-  'Earth-science': 'rgba(212, 112, 18, 0.32)',
-  Psychology: 'rgba(255, 19, 220, 0.32)',
-  Math: 'rgba(234,179,8,0.32)',
-  'Artificial Intelligence': 'rgba(77, 32, 213, 0.32)',
-  'Data Science': 'rgba(45,212,191,0.32)',
-  Junior: 'rgba(34, 197, 94, 0.32)',
-  Debunked: 'rgba(99, 102, 241, 0.32)',
+  Physics: 'rgba(138, 46, 225, 0.18)',
+  Biology: 'rgba(20, 43, 28, 0.18)',
+  Chemistry: 'rgba(169, 249, 22, 0.18)',
+  Astronomy: 'rgba(59,130,246,0.18)',
+  Medicine: 'rgba(21, 200, 232, 0.18)',
+  Technology: 'rgba(233, 208, 14, 0.18)',
+  Engineering: 'rgba(161, 206, 239, 0.18)',
+  'Earth-science': 'rgba(212, 112, 18, 0.18)',
+  Psychology: 'rgba(255, 19, 220, 0.18)',
+  Math: 'rgba(234,179,8,0.18)',
+  'Artificial Intelligence': 'rgba(77, 32, 213, 0.18)',
+  'Data Science': 'rgba(45,212,191,0.18)',
+  Junior: 'rgba(34, 197, 94, 0.18)',
+  Debunked: 'rgba(99, 102, 241, 0.18)',
 };
 
 const ARTICLES_PER_PAGE = 9;
-const PENDING_COUNT = 6;
 
 const categoryNames: Record<string, string> = {
   'Earth-science': 'Earth Science',
@@ -202,10 +202,10 @@ const Articles: React.FC = () => {
       <AnimatedBackground />
       <Navigation />
 
-      <main className="relative z-10 pt-20">
+      <main className="relative z-10 pt-24">
         {/* Header Row */}
         <div className="max-w-7xl mx-auto px-4 mb-10">
-          <div className="flex items-center justify-between gap-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1">
               <button
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-primary"
@@ -222,60 +222,19 @@ const Articles: React.FC = () => {
               </h1>
 
               <p className="text-lg text-muted-foreground">
-                Discover the latest insights and breakthroughs in science
+                {filteredArticles.length} {filteredArticles.length === 1 ? 'article' : 'articles'} on the latest insights and breakthroughs in science
               </p>
             </div>
 
             <div className="flex-shrink-0">
-              <button
+              <Button
+                size="lg"
                 onClick={goToRandomArticle}
-                className="random-native-btn inline-flex items-center gap-2 px-6 py-3 rounded-md text-base font-semibold"
+                className="hover:-translate-y-1 hover:shadow-[0_10px_28px_rgba(99,102,241,0.2)]"
               >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path d="M3 12h7a4 4 0 0 1 0 8H3" />
-                  <path d="M21 12h-7a4 4 0 0 0 0 8h7" />
-                </svg>
-
+                <Shuffle />
                 Random Article
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Banner */}
-        <div className="counts-banner-wrap w-full mb-12">
-          <div className="counts-banner w-full">
-            <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-center gap-10">
-              <div className="flex items-center gap-10 flex-wrap">
-                <div
-                  className="inline-flex items-center rounded-full px-5 py-3 font-semibold text-base"
-                  style={{
-                    backgroundColor: 'hsl(268 67% 50% / 0.10)',
-                    color: 'hsl(268 67% 50%)',
-                  }}
-                >
-                  <span className="mr-4">
-                    Number of Current Articles:
-                  </span>
-
-                  <span className="text-xl">
-                    {filteredArticles.length}
-                  </span>
-                </div>
-
-                {/*<div
-                  className="inline-flex items-center rounded-full px-5 py-3 font-semibold text-base"
-                  style={{ backgroundColor: 'hsl(150 60% 40% / 0.10)', color: 'hsl(150 60% 40%)' }}
-                >
-                  <span className="mr-4">Number of Pending Articles:</span>
-                  <span className="text-xl">{PENDING_COUNT}</span>
-                </div>*/}
-              </div>
+              </Button>
             </div>
           </div>
         </div>
@@ -321,7 +280,7 @@ const Articles: React.FC = () => {
                       ? category.color
                       : 'rgba(100,100,100,0.3)',
                     color: isActive
-                      ? category.color
+                      ? 'hsl(var(--foreground))'
                       : 'inherit',
                   }}
                 >
@@ -354,17 +313,17 @@ const Articles: React.FC = () => {
 
                   const glow =
                     subjectGlowMap[primarySubject] ??
-                    'rgba(59,130,246,0.28)';
+                    'rgba(59,130,246,0.18)';
 
                   return (
                     <Link
                       key={article.id}
                       to={`/article/${article.slug}`}
-                      className="block"
+                      className="block h-full"
                       aria-label={`Read ${article.title}`}
                     >
                       <article
-                        className="group article-glow-card bg-card/60 backdrop-blur-sm border border-border rounded-lg overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full"
+                        className="group article-glow-card flex flex-col bg-card/60 backdrop-blur-sm border border-border rounded-lg overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full"
                         style={{
                           ['--article-glow' as any]: glow,
                         }}
@@ -377,7 +336,7 @@ const Articles: React.FC = () => {
                           />
                         </div>
 
-                        <div className="p-6 space-y-4">
+                        <div className="flex flex-1 flex-col gap-4 p-6">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Tag className="w-3 h-3" />
 
@@ -399,14 +358,14 @@ const Articles: React.FC = () => {
                             {article.excerpt}
                           </p>
 
-                          <div className="flex items-center justify-between pt-4 border-t border-border">
+                          <div className="mt-auto flex items-center justify-between pt-4 border-t border-border">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <User className="w-4 h-4" />
                               <span>{article.author}</span>
                             </div>
 
-                            <span className="read-more-btn px-3 py-1 rounded-md border border-border text-sm font-medium">
-                              Read More →
+                            <span className="text-sm font-medium text-primary group-hover:underline">
+                              Read more
                             </span>
                           </div>
                         </div>
@@ -447,15 +406,15 @@ const Articles: React.FC = () => {
                         style={{
                           backgroundColor:
                             currentPage === page
-                              ? 'hsl(268 67% 50% / 0.2)'
+                              ? 'hsl(var(--primary))'
                               : 'transparent',
                           borderColor:
                             currentPage === page
-                              ? 'hsl(268 67% 50%)'
-                              : 'rgba(100,100,100,0.3)',
+                              ? 'hsl(var(--primary))'
+                              : 'hsl(var(--border))',
                           color:
                             currentPage === page
-                              ? 'hsl(268 67% 50%)'
+                              ? 'hsl(var(--primary-foreground))'
                               : 'inherit',
                         }}
                       >
